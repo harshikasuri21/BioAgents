@@ -27,7 +27,8 @@
         "form-data": "^4.0.2",
         "@elizaos/core": "workspace:*",
         "tsup": "8.3.5",
-        "dotenv": "^16.4.5"
+        "dotenv": "^16.4.5",
+        "pdf2pic": "^3.1.4"
     },
     "devDependencies": {
         "@types/node": "^22.10.5"
