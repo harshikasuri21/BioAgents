@@ -1,10 +1,11 @@
 import { Character, ModelProviderName } from "@elizaos/core";
+import { dkgPlugin } from "@elizaos/plugin-dkg";
 
 export const defaultCharacter: Character = {
     name: "Eliza",
     username: "eliza",
-    plugins: [],
-    modelProvider: ModelProviderName.LLAMALOCAL,
+    plugins: [dkgPlugin],
+    modelProvider: ModelProviderName.OPENAI,
     settings: {
         secrets: {},
         voice: {

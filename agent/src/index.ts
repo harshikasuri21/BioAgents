@@ -18,7 +18,8 @@ import {
     stringToUuid,
     validateCharacterConfig,
 } from "@elizaos/core";
-import { defaultCharacter } from "./defaultCharacter.ts";
+import { defaultCharacter } from "./defaultCharacter";
+import { dkgResearcher } from "./dkgScholar";
 
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 
@@ -353,6 +354,7 @@ export async function loadCharacters(
     if (loadedCharacters.length === 0) {
         elizaLogger.info("No characters found, using default character");
         loadedCharacters.push(defaultCharacter);
+        loadedCharacters.push(dkgResearcher);
     }
 
     return loadedCharacters;
@@ -553,7 +555,12 @@ export function getTokenForProvider(
             );
         case ModelProviderName.NEARAI:
             try {
-                const config = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.nearai/config.json'), 'utf8'));
+                const config = JSON.parse(
+                    fs.readFileSync(
+                        path.join(os.homedir(), ".nearai/config.json"),
+                        "utf8"
+                    )
+                );
                 return JSON.stringify(config?.auth);
             } catch (e) {
                 elizaLogger.warn(`Error loading NEAR AI config: ${e}`);
@@ -586,9 +593,7 @@ export async function initializeClients(
             if (plugin.clients) {
                 for (const client of plugin.clients) {
                     const startedClient = await client.start(runtime);
-                    elizaLogger.debug(
-                        `Initializing client: ${client.name}`
-                    );
+                    elizaLogger.debug(`Initializing client: ${client.name}`);
                     clients.push(startedClient);
                 }
             }
@@ -609,11 +614,7 @@ export async function createAgent(
         evaluators: [],
         character,
         // character.plugins are handled when clients are added
-        plugins: [
-            bootstrapPlugin,
-        ]
-            .flat()
-            .filter(Boolean),
+        plugins: [bootstrapPlugin].flat().filter(Boolean),
         providers: [],
         managers: [],
         fetch: logFetch,
@@ -693,23 +694,29 @@ function initializeCache(
 }
 
 async function findDatabaseAdapter(runtime: AgentRuntime) {
-  const { adapters } = runtime;
-  let adapter: Adapter | undefined;
-  // if not found, default to sqlite
-  if (adapters.length === 0) {
-    const sqliteAdapterPlugin = await import('@elizaos-plugins/adapter-sqlite');
-    const sqliteAdapterPluginDefault = sqliteAdapterPlugin.default;
-    adapter = sqliteAdapterPluginDefault.adapters[0];
-    if (!adapter) {
-      throw new Error("Internal error: No database adapter found for default adapter-sqlite");
+    const { adapters } = runtime;
+    let adapter: Adapter | undefined;
+    // if not found, default to sqlite
+    if (adapters.length === 0) {
+        const sqliteAdapterPlugin = await import(
+            "@elizaos-plugins/adapter-sqlite"
+        );
+        const sqliteAdapterPluginDefault = sqliteAdapterPlugin.default;
+        adapter = sqliteAdapterPluginDefault.adapters[0];
+        if (!adapter) {
+            throw new Error(
+                "Internal error: No database adapter found for default adapter-sqlite"
+            );
+        }
+    } else if (adapters.length === 1) {
+        adapter = adapters[0];
+    } else {
+        throw new Error(
+            "Multiple database adapters found. You must have no more than one. Adjust your plugins configuration."
+        );
     }
-  } else if (adapters.length === 1) {
-    adapter = adapters[0];
-  } else {
-    throw new Error("Multiple database adapters found. You must have no more than one. Adjust your plugins configuration.");
-    }
-  const adapterInterface = adapter?.init(runtime);
-  return adapterInterface;
+    const adapterInterface = adapter?.init(runtime);
+    return adapterInterface;
 }
 
 async function startAgent(
@@ -723,10 +730,7 @@ async function startAgent(
 
         const token = getTokenForProvider(character.modelProvider, character);
 
-        const runtime: AgentRuntime = await createAgent(
-            character,
-            token
-        );
+        const runtime: AgentRuntime = await createAgent(character, token);
 
         // initialize database
         // find a db from the plugins
@@ -797,9 +801,9 @@ const startAgents = async () => {
     let serverPort = Number.parseInt(settings.SERVER_PORT || "3000");
     const args = parseArguments();
     const charactersArg = args.characters || args.character;
-    let characters = [defaultCharacter];
+    let characters = [defaultCharacter, dkgResearcher];
 
-    if ((charactersArg) || hasValidRemoteUrls()) {
+    if (charactersArg || hasValidRemoteUrls()) {
         characters = await loadCharacters(charactersArg);
     }
 
@@ -824,6 +828,7 @@ const startAgents = async () => {
     directClient.startAgent = async (character) => {
         // Handle plugins
         character.plugins = await handlePluginImporting(character.plugins);
+        elizaLogger.info(character.plugins);
 
         // wrap it so we don't have to inject directClient later
         return startAgent(character, directClient);
