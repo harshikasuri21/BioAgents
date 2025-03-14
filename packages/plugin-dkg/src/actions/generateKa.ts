@@ -17,7 +17,7 @@ import { extractScientificPaperUrls } from "../templates.ts";
 // @ts-ignore
 import DKG from "dkg.js";
 import { isDKGMemoryContent, scientificPaperUrlsSchema } from "../types.ts";
-import { generateKa } from "../kaService/kaService.ts";
+import { generateKaFromUrls } from "../kaService/kaService.ts";
 import fs from "fs";
 
 // Define a basic type for the DKG client
@@ -98,7 +98,7 @@ export const generateKaAction: Action = {
         elizaLogger.info("URLs");
         elizaLogger.info(urls);
 
-        const ka = await generateKa(urls);
+        const ka = await generateKaFromUrls(urls);
 
         elizaLogger.info("KA generated");
 

@@ -677,3 +677,24 @@ export function get_prompt_suggested_questions(graph): string {
     ** FINAL NOTE - MAKE SURE TO OUTPUT ONLY THE THREE QUESTIONS WITHOUT EXTRA COMMENTS OR REMARKS **
     `;
 }
+
+export const categorizeIntoDAOsPrompt = `JUST RETURN THE ARRAY OF DAO NAMES RELEVANT TO THE PAPER AND ANSWER VERY CONCISE AND TO THE POINT
+<dao_list>
+VitaDAO → Longevity, anti-aging, age-related diseases
+AthenaDAO → Women's health, reproductive health, gynecological research
+PsyDAO → Psychedelic science, mental health, psychedelic-assisted therapy
+ValleyDAO → Synthetic biology, environmental biotech, climate solutions
+HairDAO → Hair loss treatment, regenerative medicine, dermatology
+CryoDAO → Cryopreservation, biostasis, organ/brain freezing technologies
+Cerebrum DAO → Brain health, neurodegeneration, Alzheimer's research
+Curetopia → Rare disease research, genetic disorders, orphan drug discovery
+Long COVID Labs → Long COVID, post-viral syndromes, chronic illness research
+Quantum Biology DAO → Quantum biology, biophysics, quantum effects in biology
+</dao_list>
+
+Return your output **only** as a JSON array of DAO names. If no DAOs are relevant, return an empty array.
+
+Example output format:
+["DAO1", "DAO2", "DAO3"]
+or
+[]`;

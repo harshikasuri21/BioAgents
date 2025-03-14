@@ -1,14 +1,19 @@
 import "dotenv/config";
 import { getClient } from "./anthropicClient";
 import { downloadPaperAndExtractDOI } from "./downloadPaper";
+import { paperExists } from "./sparqlQueries";
 import { elizaLogger } from "@elizaos/core";
 import { makeUnstructuredApiRequest } from "./unstructuredPartitioning";
 
 import { processJsonArray, process_paper, create_graph } from "./processPaper";
 import { getSummary } from "./vectorize";
+import { fromPath } from "pdf2pic";
 import fs from "fs";
-
+import { categorizeIntoDAOsPrompt } from "./llmPrompt";
+import DKG from "dkg.js";
 const unstructuredApiKey = process.env.UNSTRUCTURED_API_KEY;
+
+type DKGClient = typeof DKG | null;
 
 // const jsonArr = JSON.parse(fs.readFileSync('arxiv_paper.json', 'utf8'));
 
@@ -156,8 +161,29 @@ function removeColonsRecursively<T>(data: T, parentKey?: string): T {
     // For numbers, booleans, null, etc., just return as is
     return data;
 }
+const daoUals = {
+    VitaDAO:
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101956",
+    AthenaDAO:
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101957",
+    PsyDAO: "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101958",
+    ValleyDAO:
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101959",
+    HairDAO:
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101961",
+    CryoDAO:
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101962",
+    "Cerebrum DAO":
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101963",
+    Curetopia:
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101964",
+    "Long Covid Labs":
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101965",
+    "Quantum Biology DAO":
+        "did:dkg:base:84532/0xd5550173b0f7b8766ab2770e4ba86caf714a5af5/101966",
+};
 
-export async function generateKa(urls: [string]) {
+export async function generateKaFromUrls(urls: [string]) {
     for (const url of urls) {
         const { pdfBuffer, doi } = await downloadPaperAndExtractDOI(url);
         if (!pdfBuffer) {
@@ -175,4 +201,114 @@ export async function generateKa(urls: [string]) {
         const cleanedKa = removeColonsRecursively(ka);
         return cleanedKa;
     }
+}
+export interface Image {
+    type: "image";
+    source: {
+        type: "base64";
+        media_type: "image/png";
+        data: string;
+    };
+}
+async function extractDOIFromPDF(images: Image[]) {
+    const client = getClient();
+    const response = await client.messages.create({
+        model: "claude-3-5-haiku-20241022",
+        messages: [
+            {
+                role: "user",
+                content: [
+                    ...images,
+                    {
+                        type: "text",
+                        text: "Extract the DOI from the paper. Only return the DOI, no other text.",
+                    },
+                ],
+            },
+        ],
+        max_tokens: 50,
+    });
+    return response.content[0].type === "text"
+        ? response.content[0].text
+        : undefined;
+}
+
+async function categorizeIntoDAOs(images: Image[]) {
+    const client = getClient();
+    const response = await client.messages.create({
+        model: "claude-3-7-sonnet-20250219",
+        system: categorizeIntoDAOsPrompt,
+        messages: [
+            {
+                role: "user",
+                content: [...images],
+            },
+        ],
+        max_tokens: 50,
+    });
+    return response.content[0].type === "text"
+        ? response.content[0].text
+        : undefined;
+}
+
+export async function generateKaFromPdf(pdfPath: string, dkgClient: DKGClient) {
+    const options = {
+        density: 100,
+        format: "png",
+        width: 595,
+        height: 842,
+    };
+    const convert = fromPath(pdfPath, options);
+    elizaLogger.info(`Converting ${pdfPath} to images`);
+
+    const storeHandler = await convert.bulk(-1, { responseType: "base64" });
+
+    const imageMessages = storeHandler
+        .filter((page) => page.base64)
+        .map((page) => ({
+            type: "image" as const,
+            source: {
+                type: "base64" as const,
+                media_type: "image/png" as const,
+                data: page.base64!,
+            },
+        }));
+    elizaLogger.info(`Extracting DOI`);
+    const doi = await extractDOIFromPDF(imageMessages);
+    if (!doi) {
+        throw new Error("Failed to extract DOI");
+    }
+    const paperExistsResult = await dkgClient.graph.query(
+        paperExists(doi),
+        "SELECT"
+    );
+    if (paperExistsResult.data) {
+        elizaLogger.info(`Paper ${pdfPath} already exists in DKG, skipping`);
+        return;
+    } else {
+        elizaLogger.info(`Paper ${pdfPath} does not exist in DKG, creating`);
+    }
+    const pdfBuffer = fs.readFileSync(pdfPath);
+    const paperArray = await makeUnstructuredApiRequest(
+        pdfBuffer,
+        "paper.pdf",
+        unstructuredApiKey
+    );
+    const ka = await jsonArrToKa(paperArray, doi);
+    const cleanedKa = removeColonsRecursively(ka);
+    const relatedDAOsString = await categorizeIntoDAOs(imageMessages);
+
+    const daos = JSON.parse(relatedDAOsString);
+
+    const daoUalsMap = daos.map((dao) => {
+        const daoUal = daoUals[dao];
+        return {
+            "@id": daoUal,
+            "@type": "schema:Organization",
+            "schema:name": dao,
+        };
+    });
+    cleanedKa["schema:relatedTo"] = daoUalsMap;
+
+    return cleanedKa;
 }

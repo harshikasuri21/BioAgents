@@ -11,6 +11,7 @@ import crypto from "crypto";
 import { HypothesisEvaluator } from "./evaluateHypothesis";
 import Anthropic from "@anthropic-ai/sdk";
 import { fromPath } from "pdf2pic";
+import { watchFolderChanges } from "./gdrive";
 
 /**
  * Interfaces
@@ -373,7 +374,21 @@ export const HypothesisClient: Client = {
     name: "hypothesis",
     start: async (runtime: IAgentRuntime) => {
         const manager = new HypothesisClientManager(runtime);
-        await manager.start();
+        // await manager.start();
+        const watcher = watchFolderChanges(runtime).catch(console.error);
+        process.on("SIGINT", async () => {
+            console.log("Stopping file watcher...");
+            if (watcher && typeof watcher.then === "function") {
+                const watcherInstance = await watcher;
+                if (
+                    watcherInstance &&
+                    typeof watcherInstance.stop === "function"
+                ) {
+                    watcherInstance.stop();
+                }
+            }
+            process.exit(0);
+        });
         return manager;
     },
 };

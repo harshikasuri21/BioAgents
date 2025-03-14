@@ -20,18 +20,21 @@
     ],
     "dependencies": {
         "@anthropic-ai/sdk": "^0.39.0",
+        "@elizaos/core": "workspace:*",
         "@types/node": "^22.13.8",
         "axios": "^1.8.1",
         "cheerio": "^1.0.0",
         "dkg.js": "^8.0.4",
-        "form-data": "^4.0.2",
-        "@elizaos/core": "workspace:*",
-        "tsup": "8.3.5",
         "dotenv": "^16.4.5",
-        "pdf2pic": "^3.1.4"
+        "form-data": "^4.0.2",
+        "googleapis": "^146.0.0",
+        "pdf2pic": "^3.1.4",
+        "tsup": "8.3.5"
     },
     "devDependencies": {
-        "@types/node": "^22.10.5"
+        "@types/cli-progress": "^3.11.6",
+        "@types/node": "^22.10.5",
+        "cli-progress": "^3.12.0"
     },
     "scripts": {
         "build": "tsup --format esm --dts",
