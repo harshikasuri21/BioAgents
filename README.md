@@ -1,8 +1,4 @@
-# Eliza 🤖
-
-<div align="center">
-  <img src="./docs/static/img/eliza_banner.jpg" alt="Eliza Banner" width="100%" />
-</div>
+# BioAgent 🤖
 
 <div align="center">
 
