@@ -1,10 +1,11 @@
 import { Character, ModelProviderName } from "@elizaos/core";
 import { dkgPlugin } from "@elizaos/plugin-dkg";
+import discordPlugin from "@elizaos-plugins/client-discord";
 
 export const dkgResearcher: Character = {
     name: "ScholarDKG",
     username: "scholardkg",
-    plugins: [dkgPlugin],
+    plugins: [dkgPlugin, discordPlugin],
     modelProvider: ModelProviderName.OPENAI,
     settings: {
         secrets: {},
