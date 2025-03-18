@@ -14,7 +14,7 @@ export const dkgPlugin: Plugin = {
     description:
         "Agent DKG which allows you to store memories on the OriginTrail Decentralized Knowledge Graph",
     actions: [dkgInsert, generateKaAction, judgeLLM],
-    providers: [graphSearch],
+    providers: [],
     evaluators: [],
     clients: [HypothesisClient],
 };
