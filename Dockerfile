@@ -34,7 +34,7 @@ WORKDIR /app
 # Copy the repository (with submodules) from the previous stage
 COPY --from=clone-stage /repo .
 # Install dependencies, build the project, and prune dev dependencies
-RUN pnpm install && pnpm run build && pnpm prune --prod
+RUN pnpm install --no-frozen-lockfile && pnpm run build && pnpm prune --prod
 
 # Stage 3: Final runtime image
 FROM node:23.3.0-slim
