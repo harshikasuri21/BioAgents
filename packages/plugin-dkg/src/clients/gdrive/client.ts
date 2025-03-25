@@ -1,21 +1,5 @@
 import { google, drive_v3 } from "googleapis";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-
-const getDirName = (importMetaUrl: string) =>
-    dirname(fileURLToPath(importMetaUrl));
-
-const __dirname = getDirName(import.meta.url);
-const CREDENTIALS_PATH = path.join(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "sa_creds.json"
-);
-
+import "dotenv/config";
 /**
  * Initialize and return a Google Drive client
  * @param scopes - The OAuth scopes to request
@@ -24,11 +8,10 @@ const CREDENTIALS_PATH = path.join(
 export async function initDriveClient(
     scopes: string[] = ["https://www.googleapis.com/auth/drive.readonly"]
 ): Promise<drive_v3.Drive> {
+    let credentials: any;
     try {
         // Load credentials
-        const rawFileContents = await fs.readFile(CREDENTIALS_PATH, "utf-8");
-        const credentials = JSON.parse(rawFileContents);
-
+        credentials = JSON.parse(process.env.GCP_JSON_CREDENTIALS || "");
         // Set up authentication
         const auth = new google.auth.GoogleAuth({
             credentials,
