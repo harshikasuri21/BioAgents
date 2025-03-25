@@ -37,6 +37,9 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
+# Install discord plugin
+RUN npx elizaos plugins add @elizaos-plugins/client-discord
+
 # Install dependencies
 RUN pnpm install
 

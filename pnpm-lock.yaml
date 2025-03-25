@@ -138,6 +138,9 @@ importers:
 
   agent:
     dependencies:
+      '@elizaos-plugins/client-discord':
+        specifier: workspace:0.25.6-alpha.1
+        version: link:../packages/client-discord
       '@elizaos/client-direct':
         specifier: workspace:*
         version: link:../packages/client-direct
