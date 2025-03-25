@@ -34,11 +34,21 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 # Set the working directory
 WORKDIR /app
 
-# Copy application code
-COPY . .
+# Copy workspace configuration first
+COPY package.json pnpm-workspace.yaml .npmrc turbo.json lerna.json ./
+COPY packages/client-discord/package.json ./packages/client-discord/
+COPY packages/core/package.json ./packages/core/
+COPY packages/plugin-dkg/package.json ./packages/plugin-dkg/
+COPY packages/plugin-bootstrap/package.json ./packages/plugin-bootstrap/
+COPY packages/client-direct/package.json ./packages/client-direct/
+COPY agent/package.json ./agent/
+COPY client/package.json ./client/
 
 # Install dependencies
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install
+
+# Copy the rest of the code
+COPY . .
 
 # Build the project
 RUN pnpm run build && pnpm prune --prod
@@ -64,10 +74,10 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
 COPY --from=builder /app/turbo.json ./
+COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/agent ./agent
 COPY --from=builder /app/client ./client
-COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
