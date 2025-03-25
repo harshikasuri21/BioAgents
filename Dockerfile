@@ -45,7 +45,7 @@ COPY agent/package.json ./agent/
 COPY client/package.json ./client/
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install --no-frozen-lockfile
 
 # Copy the rest of the code
 COPY . .
