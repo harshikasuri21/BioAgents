@@ -1,13 +1,11 @@
-# Stage 1: Clone the repository including submodules
-FROM node:23.3.0-slim AS clone-stage
-RUN apt-get update && apt-get install -y git && apt-get clean && rm -rf /var/lib/apt/lists/*
-WORKDIR /repo
-# Clone repository with submodules
-RUN git clone --recurse-submodules https://github.com/bio-xyz/BioAgents.git .
-
-# Stage 2: Build the application
+# Use a specific Node.js version for better reproducibility
 FROM node:23.3.0-slim AS builder
-RUN apt-get update && apt-get install -y \
+
+# Install pnpm globally and necessary build tools
+RUN npm install -g pnpm@9.15.4 && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
     git \
     python3 \
     python3-pip \
@@ -26,28 +24,56 @@ RUN apt-get update && apt-get install -y \
     libpango1.0-dev \
     libgif-dev \
     openssl \
-    libssl-dev \
-    libsecret-1-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN npm install -g pnpm@9.15.4
-WORKDIR /app
-# Copy the repository (with submodules) from the previous stage
-COPY --from=clone-stage /repo .
-# Install dependencies, build the project, and prune dev dependencies
-RUN pnpm install --no-frozen-lockfile && pnpm run build && pnpm prune --prod
+    libssl-dev libsecret-1-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Stage 3: Final runtime image
+# Set Python 3 as the default python
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Set the working directory
+WORKDIR /app
+
+# Copy application code
+COPY . .
+
+# Install dependencies
+RUN pnpm install
+
+# Build the project
+RUN pnpm run build && pnpm prune --prod
+
+# Final runtime image
 FROM node:23.3.0-slim
-RUN apt-get update && apt-get install -y \
+
+# Install runtime dependencies
+RUN npm install -g pnpm@9.15.4 && \
+    apt-get update && \
+    apt-get install -y \
     git \
     python3 \
     ffmpeg && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN npm install -g pnpm@9.15.4
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
 WORKDIR /app
-# Copy built artifacts and the necessary files from the builder stage
-COPY --from=builder /app .
-# Expose required ports (adjust if needed)
+
+# Copy built artifacts and production dependencies from the builder stage
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/.npmrc ./
+COPY --from=builder /app/turbo.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/agent ./agent
+COPY --from=builder /app/client ./client
+COPY --from=builder /app/lerna.json ./
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/characters ./characters
+
+# Expose necessary ports
 EXPOSE 3000 5173
-# Start your application; adjust the command according to your project's requirements
+
+# Command to start the application
 CMD ["sh", "-c", "pnpm start & pnpm start:client"]

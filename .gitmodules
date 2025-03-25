@@ -2,6 +2,3 @@
 	path = characters
 	url = https://github.com/elizaos/characters
 
-[submodule "packages/client-discord"]
-    path = packages/client-discord
-    url = https://github.com/elizaos-plugins/client-discord
