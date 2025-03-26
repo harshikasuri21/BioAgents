@@ -24,27 +24,3 @@ export async function sparqlRequest(query: string) {
         throw error;
     }
 }
-
-export async function sparqlRequestProd(query: string) {
-    console.log("Making SPARQL request to Oxigraph");
-    try {
-        const { data } = await axios.post("http://oxigraph:7878/query", query, {
-            headers: {
-                "Content-Type": "application/sparql-query",
-                Accept: "application/sparql-results+json",
-            },
-        });
-        return data;
-    } catch (error) {
-        if (error instanceof AxiosError) {
-            console.error(
-                new SparqlError(
-                    `SPARQL request failed: ${error.message}`,
-                    error
-                )
-            );
-        } else {
-            console.error(error);
-        }
-    }
-}

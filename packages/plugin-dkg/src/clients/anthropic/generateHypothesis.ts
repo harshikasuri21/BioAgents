@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import { splitMarkdownForDiscord } from "./discordSplitter";
 import { chooseTwoRelevantKeywords } from "./chooseTwoRelevant";
 import { Binding, Abstract } from "./types";
-import { sparqlRequest, sparqlRequestProd } from "./sparql/makeRequest";
+import { sparqlRequest } from "./sparql/makeRequest";
 import { FileError, SparqlError } from "./errors";
 import { anthropic } from "./client";
 import { elizaLogger, IAgentRuntime } from "@elizaos/core";
