@@ -1,5 +1,5 @@
 import { Character, ModelProviderName } from "@elizaos/core";
-import { dkgPlugin } from "@elizaos/plugin-dkg";
+import { dkgPlugin } from "@elizaos/plugin-bioagent";
 import discordPlugin from "@elizaos-plugins/client-discord";
 
 export const dkgResearcher: Character = {

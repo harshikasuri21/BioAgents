@@ -31,7 +31,7 @@ importers:
     dependencies:
       '@0glabs/0g-ts-sdk':
         specifier: 0.2.1
-        version: 0.2.1(bufferutil@4.0.9)(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
+        version: 0.2.1(bufferutil@4.0.9)(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       '@coinbase/coinbase-sdk':
         specifier: 0.10.0
         version: 0.10.0(bufferutil@4.0.9)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.24.1)
@@ -41,9 +41,6 @@ importers:
       '@elizaos-plugins/adapter-sqlite':
         specifier: workspace:*
         version: link:packages/adapter-sqlite
-      '@elizaos/plugin-dkg':
-        specifier: file:packages/plugin-dkg
-        version: file:packages/plugin-dkg(@nomicfoundation/hardhat-ethers@3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)))(@swc/core@1.10.18(@swc/helpers@0.5.15))(bufferutil@4.0.9)(encoding@0.1.13)(jiti@1.21.7)(postcss@8.5.3)(typescript@5.6.3)(utf-8-validate@5.0.10)(web-streams-polyfill@3.3.3)(whatwg-url@7.1.0)(yaml@2.7.0)
       '@injectivelabs/sdk-ts':
         specifier: ^1.14.33
         version: 1.14.41(@types/react@19.0.10)(bufferutil@4.0.9)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(utf-8-validate@5.0.10)
@@ -107,7 +104,7 @@ importers:
         version: 9.1.7
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.13.8)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))
+        version: 29.7.0(@types/node@22.13.8)
       lerna:
         specifier: 8.1.5
         version: 8.1.5(@swc/core@1.10.18(@swc/helpers@0.5.15))(encoding@0.1.13)
@@ -147,12 +144,12 @@ importers:
       '@elizaos/core':
         specifier: workspace:*
         version: link:../packages/core
+      '@elizaos/plugin-bioagent':
+        specifier: workspace:^
+        version: link:../packages/plugin-bioagent
       '@elizaos/plugin-bootstrap':
         specifier: workspace:*
         version: link:../packages/plugin-bootstrap
-      '@elizaos/plugin-dkg':
-        specifier: workspace:^
-        version: link:../packages/plugin-dkg
       readline:
         specifier: 1.3.0
         version: 1.3.0
@@ -515,6 +512,9 @@ importers:
       prism-media:
         specifier: 1.3.5
         version: 1.3.5(@discordjs/opus@https://codeload.github.com/discordjs/opus/tar.gz/679ff3f58e6804b80becc166c7214deb2ca026e2(encoding@0.1.13))
+      whatwg-url:
+        specifier: 7.1.0
+        version: 7.1.0
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -706,23 +706,7 @@ importers:
 
   packages/dynamic-imports: {}
 
-  packages/plugin-bootstrap:
-    dependencies:
-      '@elizaos/core':
-        specifier: workspace:*
-        version: link:../core
-      tsup:
-        specifier: 8.3.5
-        version: 8.3.5(@swc/core@1.10.18(@swc/helpers@0.5.15))(jiti@1.21.7)(postcss@8.5.3)(typescript@5.7.3)(yaml@2.7.0)
-      whatwg-url:
-        specifier: 7.1.0
-        version: 7.1.0
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.5
-        version: 22.13.5
-
-  packages/plugin-dkg:
+  packages/plugin-bioagent:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.39.0
@@ -767,6 +751,22 @@ importers:
       cli-progress:
         specifier: ^3.12.0
         version: 3.12.0
+
+  packages/plugin-bootstrap:
+    dependencies:
+      '@elizaos/core':
+        specifier: workspace:*
+        version: link:../core
+      tsup:
+        specifier: 8.3.5
+        version: 8.3.5(@swc/core@1.10.18(@swc/helpers@0.5.15))(jiti@1.21.7)(postcss@8.5.3)(typescript@5.7.3)(yaml@2.7.0)
+      whatwg-url:
+        specifier: 7.1.0
+        version: 7.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.13.5
 
 packages:
 
@@ -2466,11 +2466,6 @@ packages:
   '@docusaurus/utils@3.7.0':
     resolution: {integrity: sha512-e7zcB6TPnVzyUaHMJyLSArKa2AG3h9+4CfvKXKKWNx6hRs+p0a+u7HHTJBgo6KW2m+vqDnuIHK4X+bhmoghAFA==}
     engines: {node: '>=18.0'}
-
-  '@elizaos/plugin-dkg@file:packages/plugin-dkg':
-    resolution: {directory: packages/plugin-dkg, type: directory}
-    peerDependencies:
-      whatwg-url: 7.1.0
 
   '@emnapi/core@1.3.1':
     resolution: {integrity: sha512-pVGjBIt1Y6gg3EJN8jTcfpP/+uuRksIo055oE/OBkDNcjZqVbfkWCksG1Jp4yZnj3iKWyWX8fdG/j6UDYPbFog==}
@@ -14761,11 +14756,11 @@ packages:
 
 snapshots:
 
-  '@0glabs/0g-ts-sdk@0.2.1(bufferutil@4.0.9)(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)':
+  '@0glabs/0g-ts-sdk@0.2.1(bufferutil@4.0.9)(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)':
     dependencies:
       '@ethersproject/bytes': 5.7.0
       '@ethersproject/keccak256': 5.7.0
-      ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      ethers: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       open-jsonrpc-provider: 0.2.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
@@ -14776,7 +14771,7 @@ snapshots:
   '@acuminous/bitsyntax@0.1.2':
     dependencies:
       buffer-more-ints: 1.0.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       safe-buffer: 5.1.2
     transitivePeerDependencies:
       - supports-color
@@ -15416,7 +15411,7 @@ snapshots:
       '@babel/traverse': 7.26.9
       '@babel/types': 7.26.9
       convert-source-map: 2.0.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -16194,7 +16189,7 @@ snapshots:
       '@babel/parser': 7.26.9
       '@babel/template': 7.26.9
       '@babel/types': 7.26.9
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -17741,38 +17736,6 @@ snapshots:
       - uglify-js
       - webpack-cli
 
-  '@elizaos/plugin-dkg@file:packages/plugin-dkg(@nomicfoundation/hardhat-ethers@3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)))(@swc/core@1.10.18(@swc/helpers@0.5.15))(bufferutil@4.0.9)(encoding@0.1.13)(jiti@1.21.7)(postcss@8.5.3)(typescript@5.6.3)(utf-8-validate@5.0.10)(web-streams-polyfill@3.3.3)(whatwg-url@7.1.0)(yaml@2.7.0)':
-    dependencies:
-      '@anthropic-ai/sdk': 0.39.0(encoding@0.1.13)
-      '@elizaos/core': link:packages/core
-      '@types/node': 22.13.8
-      axios: 1.8.1(debug@4.4.0)
-      cheerio: 1.0.0
-      dkg.js: 8.0.7(@nomicfoundation/hardhat-ethers@3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)))(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)(web-streams-polyfill@3.3.3)
-      dotenv: 16.4.7
-      form-data: 4.0.2
-      googleapis: 146.0.0(encoding@0.1.13)
-      pdf2pic: 3.1.4
-      tsup: 8.3.5(@swc/core@1.10.18(@swc/helpers@0.5.15))(jiti@1.21.7)(postcss@8.5.3)(typescript@5.6.3)(yaml@2.7.0)
-      whatwg-url: 7.1.0
-    transitivePeerDependencies:
-      - '@microsoft/api-extractor'
-      - '@nomicfoundation/hardhat-ethers'
-      - '@swc/core'
-      - '@swc/wasm'
-      - bufferutil
-      - c-kzg
-      - debug
-      - encoding
-      - jiti
-      - postcss
-      - supports-color
-      - tsx
-      - typescript
-      - utf-8-validate
-      - web-streams-polyfill
-      - yaml
-
   '@emnapi/core@1.3.1':
     dependencies:
       '@emnapi/wasi-threads': 1.0.1
@@ -17940,7 +17903,7 @@ snapshots:
   '@eslint/config-array@0.19.2':
     dependencies:
       '@eslint/object-schema': 2.1.6
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -17952,7 +17915,7 @@ snapshots:
   '@eslint/eslintrc@3.3.0':
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       espree: 10.3.0
       globals: 14.0.0
       ignore: 5.3.2
@@ -19066,9 +19029,9 @@ snapshots:
 
   '@nomicfoundation/hardhat-ethers@3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10))':
     dependencies:
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.6.3)(utf-8-validate@5.0.10)
+      hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)
       lodash.isequal: 4.5.0
     transitivePeerDependencies:
       - supports-color
@@ -21609,7 +21572,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.24.1
       '@typescript-eslint/visitor-keys': 8.24.1
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       fast-glob: 3.3.3
       is-glob: 4.0.3
       minimatch: 9.0.5
@@ -21952,7 +21915,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -23943,11 +23906,11 @@ snapshots:
       '@polkadot/util-crypto': 12.6.2(@polkadot/util@12.6.2)
       '@prb/math': 4.1.0
       dotenv: 16.4.7
-      hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.6.3)(utf-8-validate@5.0.10)
+      hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)
       hardhat-deploy: 0.12.4(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat-deploy-ethers: 0.4.2(@nomicfoundation/hardhat-ethers@3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)))(hardhat-deploy@0.12.4(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10))
       solady: 0.0.285
-      ts-node: 10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.6.3)
+      ts-node: 10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3)
       typescript: 5.7.3
     transitivePeerDependencies:
       - '@nomicfoundation/hardhat-ethers'
@@ -24535,7 +24498,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       escape-string-regexp: 4.0.0
       eslint-scope: 8.2.0
       eslint-visitor-keys: 4.2.0
@@ -25084,7 +25047,7 @@ snapshots:
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
 
   for-each@0.3.5:
     dependencies:
@@ -25629,7 +25592,7 @@ snapshots:
   hardhat-deploy-ethers@0.4.2(@nomicfoundation/hardhat-ethers@3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)))(hardhat-deploy@0.12.4(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)):
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10))
-      hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.6.3)(utf-8-validate@5.0.10)
+      hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10)
       hardhat-deploy: 0.12.4(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   hardhat-deploy@0.12.4(bufferutil@4.0.9)(utf-8-validate@5.0.10):
@@ -25649,7 +25612,7 @@ snapshots:
       axios: 1.8.1(debug@4.4.0)
       chalk: 4.1.2
       chokidar: 3.6.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       enquirer: 2.3.6
       ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       form-data: 4.0.2
@@ -25663,7 +25626,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.6.3)(utf-8-validate@5.0.10):
+  hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))(typescript@5.7.3)(utf-8-validate@5.0.10):
     dependencies:
       '@ethersproject/abi': 5.8.0
       '@metamask/eth-sig-util': 4.0.1
@@ -25681,7 +25644,7 @@ snapshots:
       boxen: 5.1.2
       chokidar: 4.0.3
       ci-info: 2.0.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       enquirer: 2.3.6
       env-paths: 2.2.1
       ethereum-cryptography: 1.2.0
@@ -25710,8 +25673,8 @@ snapshots:
       uuid: 8.3.2
       ws: 7.5.10(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
-      ts-node: 10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.6.3)
-      typescript: 5.6.3
+      ts-node: 10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3)
+      typescript: 5.7.3
     transitivePeerDependencies:
       - bufferutil
       - c-kzg
@@ -26045,7 +26008,7 @@ snapshots:
   http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -26090,14 +26053,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -26530,7 +26493,7 @@ snapshots:
 
   istanbul-lib-source-maps@4.0.1:
     dependencies:
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       istanbul-lib-coverage: 3.2.2
       source-map: 0.6.1
     transitivePeerDependencies:
@@ -26624,6 +26587,25 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
+
+  jest-cli@29.7.0(@types/node@22.13.8):
+    dependencies:
+      '@jest/core': 29.7.0(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))
+      '@jest/test-result': 29.7.0
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      create-jest: 29.7.0(@types/node@22.13.8)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))
+      exit: 0.1.2
+      import-local: 3.2.0
+      jest-config: 29.7.0(@types/node@22.13.8)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      yargs: 17.7.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
 
   jest-cli@29.7.0(@types/node@22.13.8)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3)):
     dependencies:
@@ -26976,6 +26958,18 @@ snapshots:
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
+
+  jest@29.7.0(@types/node@22.13.8):
+    dependencies:
+      '@jest/core': 29.7.0(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3))
+      '@jest/types': 29.6.3
+      import-local: 3.2.0
+      jest-cli: 29.7.0(@types/node@22.13.8)
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
 
   jest@29.7.0(@types/node@22.13.8)(ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3)):
     dependencies:
@@ -28474,7 +28468,7 @@ snapshots:
 
   nock@13.5.6:
     dependencies:
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       json-stringify-safe: 5.0.1
       propagate: 2.0.1
     transitivePeerDependencies:
@@ -31163,7 +31157,7 @@ snapshots:
   socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.3
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       socks: 2.8.4
     transitivePeerDependencies:
       - supports-color
@@ -31891,26 +31885,6 @@ snapshots:
       '@swc/core': 1.10.18(@swc/helpers@0.5.15)
     optional: true
 
-  ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.6.3):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.11
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 22.13.8
-      acorn: 8.14.0
-      acorn-walk: 8.3.4
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 5.6.3
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    optionalDependencies:
-      '@swc/core': 1.10.18(@swc/helpers@0.5.15)
-
   ts-node@10.9.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(@types/node@22.13.8)(typescript@5.7.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
@@ -31982,7 +31956,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       esbuild: 0.24.2
       joycon: 3.1.1
       picocolors: 1.1.1
@@ -32010,7 +31984,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       esbuild: 0.24.2
       joycon: 3.1.1
       picocolors: 1.1.1
@@ -32035,7 +32009,7 @@ snapshots:
   tuf-js@2.2.1:
     dependencies:
       '@tufjs/models': 2.0.1
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       make-fetch-happen: 13.0.1
     transitivePeerDependencies:
       - supports-color
@@ -32510,7 +32484,7 @@ snapshots:
   vite-node@1.6.1(@types/node@22.13.8)(terser@5.39.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       pathe: 1.1.2
       picocolors: 1.1.1
       vite: 5.4.12(@types/node@22.13.8)(terser@5.39.0)
@@ -32528,7 +32502,7 @@ snapshots:
   vite-node@3.0.5(@types/node@22.13.8)(jiti@1.21.7)(terser@5.39.0)(yaml@2.7.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       es-module-lexer: 1.6.0
       pathe: 2.0.3
       vite: 6.1.1(@types/node@22.13.8)(jiti@1.21.7)(terser@5.39.0)(yaml@2.7.0)
@@ -32642,7 +32616,7 @@ snapshots:
       '@vitest/utils': 1.6.1
       acorn-walk: 8.3.4
       chai: 4.5.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       execa: 8.0.1
       local-pkg: 0.5.1
       magic-string: 0.30.17
@@ -32677,7 +32651,7 @@ snapshots:
       '@vitest/spy': 3.0.5
       '@vitest/utils': 3.0.5
       chai: 5.2.0
-      debug: 4.4.0(supports-color@5.5.0)
+      debug: 4.4.0(supports-color@8.1.1)
       expect-type: 1.1.0
       magic-string: 0.30.17
       pathe: 2.0.3

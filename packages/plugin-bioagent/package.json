@@ -1,5 +1,5 @@
 {
-    "name": "@elizaos/plugin-dkg",
+    "name": "@elizaos/plugin-bioagent",
     "version": "0.1.9",
     "type": "module",
     "main": "dist/index.js",
