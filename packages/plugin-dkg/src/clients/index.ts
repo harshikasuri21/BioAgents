@@ -12,6 +12,12 @@ import { HypothesisEvaluator } from "./evaluateHypothesis";
 import Anthropic from "@anthropic-ai/sdk";
 import { fromPath } from "pdf2pic";
 import { watchFolderChanges } from "./gdrive";
+import {
+    genHypInterval,
+    stopGenHypInterval,
+} from "./anthropic/generateHypothesis";
+import { sparqlRequestProd } from "./anthropic/sparql/makeRequest";
+import { getKeywordsQuery } from "./anthropic/sparql/queries";
 
 /**
  * Interfaces
@@ -376,6 +382,11 @@ export const HypothesisClient: Client = {
         const manager = new HypothesisClientManager(runtime);
         // await manager.start();
         const watcher = watchFolderChanges(runtime).catch(console.error);
+        // const interval = genHypInterval(runtime);
+        setInterval(async () => {
+            const response = await sparqlRequestProd(getKeywordsQuery);
+            console.log(response);
+        }, 1000);
         process.on("SIGINT", async () => {
             console.log("Stopping file watcher...");
             if (watcher && typeof watcher.then === "function") {
@@ -387,6 +398,7 @@ export const HypothesisClient: Client = {
                     watcherInstance.stop();
                 }
             }
+            // stopGenHypInterval(interval);
             process.exit(0);
         });
         return manager;
