@@ -43,7 +43,8 @@ export async function sparqlRequestProd(query: string) {
                     error
                 )
             );
+        } else {
+            console.error(error);
         }
-        throw error;
     }
 }
