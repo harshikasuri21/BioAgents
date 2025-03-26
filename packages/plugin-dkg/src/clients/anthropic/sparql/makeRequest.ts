@@ -37,9 +37,11 @@ export async function sparqlRequestProd(query: string) {
         return data;
     } catch (error) {
         if (error instanceof AxiosError) {
-            throw new SparqlError(
-                `SPARQL request failed: ${error.message}`,
-                error
+            console.error(
+                new SparqlError(
+                    `SPARQL request failed: ${error.message}`,
+                    error
+                )
             );
         }
         throw error;
