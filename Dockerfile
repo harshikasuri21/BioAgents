@@ -25,6 +25,8 @@ RUN npm install -g pnpm@9.15.4 && \
     libgif-dev \
     openssl \
     libssl-dev libsecret-1-dev && \
+    ghostscript && \
+    graphicsmagick && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -53,6 +55,8 @@ RUN npm install -g pnpm@9.15.4 && \
     git \
     python3 \
     ffmpeg && \
+    ghostscript && \
+    graphicsmagick && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
