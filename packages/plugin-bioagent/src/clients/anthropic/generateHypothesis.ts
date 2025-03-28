@@ -7,7 +7,6 @@ import { FileError, SparqlError } from "./errors";
 import { anthropic } from "./client";
 import { elizaLogger, IAgentRuntime } from "@elizaos/core";
 import { getKeywordsQuery, getAbstractsQuery } from "./sparql/queries";
-
 /**
  * Loads a SPARQL query from a file
  * @param path Path to the query file
@@ -108,7 +107,7 @@ ${abstractsTwo
  */
 export async function generateHypothesis(
     agentRuntime: IAgentRuntime
-): Promise<void> {
+): Promise<{ hypothesis: string; hypothesisMessageId: string }> {
     // @ts-ignore
     const channel = await agentRuntime.clients[1].client.channels.fetch(
         process.env.DISCORD_CHANNEL_ID
@@ -151,9 +150,12 @@ export async function generateHypothesis(
         console.log("Generated Hypothesis:");
         console.log(hypothesis);
         const chunks = await splitMarkdownForDiscord(hypothesis);
+        const messageIds = [];
         for (const chunk of chunks) {
-            await channel.send(chunk.content);
+            const message = await channel.send(chunk.content);
+            messageIds.push(message.id);
         }
+        return { hypothesis, hypothesisMessageId: messageIds[0] }; // return the first message id, which is the hypothesis heading
     } catch (error) {
         if (error instanceof SparqlError) {
             console.error("SPARQL Error:", error.message);
@@ -162,19 +164,5 @@ export async function generateHypothesis(
         } else {
             console.error("Unexpected error:", error);
         }
-        process.exit(1);
     }
 }
-
-export const genHypInterval = (agentRuntime: IAgentRuntime) => {
-    elizaLogger.info("Starting hypothesis generation interval");
-    const interval = setInterval(() => {
-        generateHypothesis(agentRuntime);
-    }, 90000);
-    return interval;
-};
-
-export const stopGenHypInterval = (interval: NodeJS.Timeout) => {
-    elizaLogger.info("Stopping hypothesis generation interval");
-    clearInterval(interval);
-};

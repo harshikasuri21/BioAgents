@@ -4,13 +4,11 @@ import { drive_v3 } from "googleapis";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { createWriteStream } from "fs";
 import fs from "fs/promises";
-import { Readable } from "stream";
-import { generateKaFromPdf, Image } from "../../kaService/kaService.js";
+import { generateKaFromPdf } from "../../kaService/kaService.js";
 import DKG from "dkg.js";
 import { Anthropic } from "@anthropic-ai/sdk";
-import { evaluationPrompt } from "../../judgeLLM/evaluationPrompt.js";
+import { evaluationPrompt } from "../../evaluators/evaluationPrompt.js";
 import { fromPath } from "pdf2pic";
 type Schema$File = drive_v3.Schema$File;
 
@@ -36,31 +34,28 @@ async function ensureDownloadFolder() {
     }
 }
 
-async function streamToDisk(
-    readable: Readable,
-    filePath: string
-): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const writer = createWriteStream(filePath);
-        readable.pipe(writer);
-        writer.on("finish", resolve);
-        writer.on("error", reject);
-    });
-}
-
 async function downloadFile(
     drive: drive_v3.Drive,
     file: FileInfo
-): Promise<void> {
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = path.join(DOWNLOAD_FOLDER, safeFileName);
-
+): Promise<Buffer> {
     const res = await drive.files.get(
-        { fileId: file.id, alt: "media" },
-        { responseType: "stream" }
+        {
+            fileId: file.id,
+            alt: "media",
+        },
+        {
+            responseType: "arraybuffer",
+            params: {
+                supportsAllDrives: true,
+                acknowledgeAbuse: true,
+            },
+            headers: {
+                Range: "bytes=0-",
+            },
+        }
     );
 
-    await streamToDisk(res.data, filePath);
+    return Buffer.from(res.data as ArrayBuffer);
 }
 
 async function getFilesInfo(): Promise<FileInfo[]> {
@@ -129,7 +124,7 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
                 // Download new files
                 for (const file of newFiles) {
                     elizaLogger.info(`Downloading ${file.name}...`);
-                    await downloadFile(drive, file);
+                    const pdfBuffer = await downloadFile(drive, file);
                     elizaLogger.info(`Successfully downloaded ${file.name}`);
 
                     // Mark as processed immediately after download
@@ -140,6 +135,7 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
                         "_"
                     );
                     const pdfPath = path.join(DOWNLOAD_FOLDER, safeFileName);
+                    await fs.writeFile(pdfPath, pdfBuffer);
 
                     const ka = await generateKaFromPdf(pdfPath, DkgClient);
                     if (!ka) {
