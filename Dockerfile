@@ -1,7 +1,6 @@
-# Use a specific Node.js version for better reproducibility
-FROM node:23.3.0-slim AS builder
+FROM node:23.3.0-slim AS base
 
-# Install pnpm globally and necessary build tools
+# Install pnpm and essential packages
 RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get upgrade -y && \
@@ -30,25 +29,27 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set Python 3 as the default python
-RUN ln -sf /usr/bin/python3 /usr/bin/python
-
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy application code
-COPY . .
+# Copy package files
+COPY package.json ./
 
 # Install dependencies
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install 
 
-# Build the project
-RUN pnpm run build && pnpm prune --prod
+# Copy source code
+COPY . .
 
-# Final runtime image
-FROM node:23.3.0-slim
+# Build stage
+FROM base AS builder
+RUN pnpm add uuid
+RUN pnpm build
 
-# Install runtime dependencies
+# Production stage
+FROM node:23.3.0-slim AS production
+WORKDIR /app
+
 RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get install -y \
@@ -60,24 +61,18 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR /app
+# Install dependencies
+COPY package.json ./
+RUN pnpm install --prod 
 
-# Copy built artifacts and production dependencies from the builder stage
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/.npmrc ./
-COPY --from=builder /app/turbo.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/agent ./agent
-COPY --from=builder /app/client ./client
-COPY --from=builder /app/lerna.json ./
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/characters ./characters
+# Copy built assets
+COPY --from=builder /app/dist ./dist
 
-# Expose necessary ports
-EXPOSE 3000 5173
+# Set environment variables
+ENV NODE_ENV=production
 
-# Command to start the application
-CMD ["sh", "-c", "pnpm start & pnpm start:client"]
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["pnpm", "start"]
