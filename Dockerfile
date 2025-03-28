@@ -63,11 +63,12 @@ RUN npm install -g pnpm@9.15.4 && \
 
 # Copy package files and install dependencies
 COPY package.json ./
-RUN pnpm install
+RUN pnpm install && pnpm add uuid
 
 # Copy built assets
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
 
 # Set environment variables
 ENV NODE_ENV=production
