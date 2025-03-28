@@ -61,12 +61,13 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+# Copy package files and install dependencies
 COPY package.json ./
-RUN pnpm install --prod 
+RUN pnpm install
 
 # Copy built assets
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
 
 # Set environment variables
 ENV NODE_ENV=production
