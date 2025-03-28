@@ -43,7 +43,7 @@ COPY . .
 
 # Build stage
 FROM base AS builder
-RUN pnpm add uuid
+
 RUN pnpm build
 
 # Production stage
