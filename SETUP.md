@@ -91,16 +91,10 @@ For basic working just add `OPENAI_API_KEY=` and `ANTHROPIC_API_KEY=` and remove
 
 Edit `.env` with your configuration values.
 
-5. Build the project:
+5. Start the development server:
 
 ```bash
-pnpm build
-```
-
-6. Start the development server:
-
-```bash
-pnpm start
+pnpm run dev
 ```
 
 ## Database Setup (OPTIONAL)
