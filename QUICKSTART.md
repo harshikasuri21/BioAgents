@@ -39,3 +39,7 @@ Alternatively, you can use pglite instead of PostgreSQL (Eliza will give you tha
 ```bash
 pnpm run dev
 ```
+
+6. Enable the hypothesis generation service:
+
+- Uncomment line 25 and 27 in [index.ts](src/bioagentPlugin/services/index.ts)
