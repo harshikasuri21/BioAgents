@@ -10,7 +10,7 @@
 
 1. Follow the setup instructions in [SETUP.md](SETUP.md)
 
-2. Start the Oxigraph server:
+2. Start the Oxigraph server: (Or use OriginTrail's DKG)
 
 ```bash
 docker run --rm -v $PWD/oxigraph:/data -p 7878:7878 ghcr.io/oxigraph/oxigraph serve --location /data --bind 0.0.0.0:7878
@@ -18,7 +18,7 @@ docker run --rm -v $PWD/oxigraph:/data -p 7878:7878 ghcr.io/oxigraph/oxigraph se
 
 Now your local oxigraph instance is ready to load the processed scientific papers from the `sampleJsonLds` folder. More info here - [README.md](src/extract/README.md)
 
-3. Load JSON-LD data into Oxigraph:
+3. Load JSON-LD data into Oxigraph/OriginTrail's DKG:
 
 ```bash
 pnpm run script scripts/jsonldToTriple.ts
