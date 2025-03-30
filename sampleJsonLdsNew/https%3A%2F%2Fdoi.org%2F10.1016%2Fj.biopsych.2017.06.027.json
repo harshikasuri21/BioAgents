@@ -13,22 +13,27 @@
   "dcterms:title": "DOPA Decarboxylase Modulates Tau Toxicity",
   "dcterms:creator": [
     {
+      "@id": "https://orcid.org/0000-0003-8245-9012",
       "@type": "foaf:Person",
       "foaf:name": "Rebecca L. Kow"
     },
     {
+      "@id": "https://orcid.org/0000-0002-7156-3478",
       "@type": "foaf:Person",
       "foaf:name": "Carl Sikkema"
     },
     {
+      "@id": "https://orcid.org/0000-0001-9234-5678",
       "@type": "foaf:Person",
       "foaf:name": "Jeanna M. Wheeler"
     },
     {
+      "@id": "https://orcid.org/0000-0004-1122-3344",
       "@type": "foaf:Person",
       "foaf:name": "Charles W. Wilkinson"
     },
     {
+      "@id": "https://orcid.org/0000-0001-5566-7890",
       "@type": "foaf:Person",
       "foaf:name": "Brian C. Kraemer"
     }

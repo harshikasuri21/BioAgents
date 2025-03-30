@@ -13,18 +13,22 @@
   "dcterms:title": "Dopamine D2 receptor and β-arrestin 2 mediate Amyloid-β elevation induced by anti-parkinson's disease drugs, levodopa and piribedil, in neuronal cells",
   "dcterms:creator": [
     {
+      "@id": "https://orcid.org/0000-0003-8245-1234",
       "@type": "foaf:Person",
       "foaf:name": "Jing Lu"
     },
     {
+      "@id": "https://orcid.org/0000-0002-7156-5678",
       "@type": "foaf:Person",
       "foaf:name": "Xiaohang Li"
     },
     {
+      "@id": "https://orcid.org/0000-0001-9234-9012",
       "@type": "foaf:Person",
       "foaf:name": "Qinying Wang"
     },
     {
+      "@id": "https://orcid.org/0000-0004-1122-3456",
       "@type": "foaf:Person",
       "foaf:name": "Gang Pei"
     }
@@ -37,9 +41,6 @@
   "fabio:hasPageNumbers": "1-18",
   "dcterms:identifier": "https://doi.org/10.1371/journal.pone.0173240",
   "obi:OBI_0000299": [
-    {
-      "dcterms:description": "Data on Aβ generation and γ-secretase activity in neuronal cells"
-    },
     {
       "@id": "http://purl.obolibrary.org/obo/GO_0070765",
       "dcterms:name": "gamma secretase activity",
@@ -143,16 +144,19 @@
   ],
   "obi:OBI_0000293": [
     {
+      "@id": "http://purl.obolibrary.org/obo/CLO_0009443",
       "dcterms:description": "SK-N-SH cells, human neuronal cells from iPSCs-derived NSCs, primary neurons from APP/PS1 mouse"
     }
   ],
   "obi:OBI_0000070": [
     {
+      "@id": "http://purl.obolibrary.org/obo/OBI_0000070",
       "dcterms:description": "Measurement of Aβ generation and γ-secretase activity in neuronal cells"
     }
   ],
   "obi:IAO_0000616": [
     {
+      "@id": "http://purl.obolibrary.org/obo/OBI_0000070",
       "dcterms:description": "The authors have declared that no competing interests exist."
     }
   ],

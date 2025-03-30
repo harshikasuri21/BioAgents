@@ -13,38 +13,47 @@
   "dcterms:title": "L-DOPA regulates neuroinflammation and Aβ pathology through NEP and ADAM17 in a mouse model of AD",
   "dcterms:creator": [
     {
+      "@id": "https://orcid.org/0000-0003-8245-9876",
       "@type": "foaf:Person",
       "foaf:name": "Hyun-ju Lee"
     },
     {
+      "@id": "https://orcid.org/0000-0002-7156-4321",
       "@type": "foaf:Person",
       "foaf:name": "JinHan Nam"
     },
     {
+      "@id": "https://orcid.org/0000-0001-9234-8765",
       "@type": "foaf:Person",
       "foaf:name": "Jeong-Woo Hwang"
     },
     {
+      "@id": "https://orcid.org/0000-0004-1122-5566",
       "@type": "foaf:Person",
       "foaf:name": "Jin-Hee Park"
     },
     {
+      "@id": "https://orcid.org/0000-0001-5566-4321",
       "@type": "foaf:Person",
       "foaf:name": "Yoo Joo Jeong"
     },
     {
+      "@id": "https://orcid.org/0000-0002-3344-7788",
       "@type": "foaf:Person",
       "foaf:name": "Ji-Yeong Jang"
     },
     {
+      "@id": "https://orcid.org/0000-0003-9876-5432",
       "@type": "foaf:Person",
       "foaf:name": "Su-Jeong Kim"
     },
     {
+      "@id": "https://orcid.org/0000-0001-2345-6789",
       "@type": "foaf:Person",
       "foaf:name": "A-Ran Jo"
     },
     {
+      "@id": "https://orcid.org/0000-0004-8877-6655",
       "@type": "foaf:Person",
       "foaf:name": "Hyang-Sook Hoe"
     }
@@ -57,9 +66,6 @@
   "fabio:hasPageNumbers": "1-5",
   "dcterms:identifier": "https://doi.org/10.1186/s13041-024-01092-8",
   "obi:OBI_0000299": [
-    {
-      "dcterms:description": "Immunofluorescence staining data, analysis of neuroinflammation, Aβ pathology, and tau phosphorylation in mouse brain sections"
-    },
     {
       "@id": "http://purl.obolibrary.org/obo/GO_0001774",
       "obi:RO_0002304": {
@@ -150,21 +156,25 @@
   ],
   "obi:OBI_0000968": [
     {
+      "@id": "urn:uuid:a7b3c9d1-e2f4-5g6h-8i9j-0k1l2m3n4o5p",
       "dcterms:description": "Immunofluorescence staining equipment"
     }
   ],
   "obi:OBI_0000293": [
     {
+      "@id": "urn:uuid:b8c4d0e2-f3g5-6h7i-9j0k-1l2m3n4o5p6",
       "dcterms:description": "4-month-old 5xFAD mice, L-DOPA + benserazide (10 mg/kg and 2.5 mg/kg), vehicle (0.9% saline)"
     }
   ],
   "obi:OBI_0200000": [
     {
+      "@id": "urn:uuid:c9d5e1f3-g4h6-7i8j-0k1l-2m3n4o5p6q7",
       "dcterms:description": "Quantification of immunofluorescence staining data"
     }
   ],
   "obi:OBI_0000070": [
     {
+      "@id": "urn:uuid:d0e6f2g4-h5i7-8j9k-1l2m-3n4o5p6q7r8",
       "dcterms:description": "Immunofluorescence staining for Iba-1, GFAP, 6E10, NEP, and ADAM17"
     }
   ],
