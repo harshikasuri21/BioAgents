@@ -219,10 +219,10 @@ export async function searchAtc(
 export async function updateGoTerms(data, client: Anthropic) {
   for (const entry of data) {
     const subjectResult = await searchGo(entry.subject, client);
-    entry.subject = subjectResult;
+    entry.subject = { term: entry.subject, id: subjectResult };
 
     const objectResult = await searchGo(entry.object, client);
-    entry.object = objectResult;
+    entry.object = { term: entry.object, id: objectResult };
   }
 
   return data.filter(
