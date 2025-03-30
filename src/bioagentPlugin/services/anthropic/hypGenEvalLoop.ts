@@ -8,6 +8,9 @@ export const hypGenEvalLoop = async (agentRuntime: IAgentRuntime) => {
     await generateHypothesis(agentRuntime);
 
   elizaLogger.log(hypothesis);
+
+  // interval was glitching so had to comment it out
+
   // const interval = setInterval(async () => {
   //   const { hypothesis, hypothesisMessageId } =
   //     await generateHypothesis(agentRuntime);

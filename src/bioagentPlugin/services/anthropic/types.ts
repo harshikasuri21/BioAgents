@@ -10,4 +10,24 @@ export type Abstract = {
     type: string;
     value: string;
   };
+  sub: {
+    type: string;
+    value: string;
+  };
+};
+
+export type Finding = {
+  description: {
+    type: string;
+    value: string;
+  };
+  paper: {
+    type: string;
+    value: string;
+  };
+};
+
+export type FindingResult = {
+  finding: string;
+  paper: string;
 };

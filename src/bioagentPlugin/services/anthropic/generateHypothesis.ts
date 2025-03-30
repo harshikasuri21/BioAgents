@@ -1,12 +1,20 @@
 import fs from "fs/promises";
 import { splitMarkdownForDiscord } from "./discordSplitter";
-import { chooseTwoRelevantKeywords } from "./chooseTwoRelevant";
-import { Binding, Abstract } from "./types";
+import {
+  chooseTwoRelevantFindings,
+  chooseTwoRelevantKeywords,
+} from "./chooseTwoRelevant";
+import { Binding, Abstract, Finding, FindingResult } from "./types";
 import { sparqlRequest } from "./sparql/makeRequest";
 import { FileError, SparqlError } from "./errors";
 import { anthropic } from "./client";
 import { logger, IAgentRuntime } from "@elizaos/core";
-import { getKeywordsQuery, getAbstractsQuery } from "./sparql/queries";
+import {
+  getKeywordsQuery,
+  getAbstractsQuery,
+  getFindingsQuery,
+  getAbstractsForPapersQuery,
+} from "./sparql/queries";
 /**
  * Loads a SPARQL query from a file
  * @param path Path to the query file
@@ -31,10 +39,34 @@ async function fetchKeywords(): Promise<string[]> {
 /**
  * Fetches abstracts for a given keyword
  */
-async function fetchAbstracts(keyword: string): Promise<string[]> {
+async function fetchAbstracts(
+  keyword: string
+): Promise<{ abstract: string; paper: string }[]> {
   const data = await sparqlRequest(
     getAbstractsQuery.replace("{{keyword}}", `"${keyword}"`)
   );
+  return data.results.bindings.map((binding: Abstract) => ({
+    abstract: binding.abstract.value,
+    paper: binding.sub.value,
+  }));
+}
+
+/**
+ * Fetches findings from the graph database
+ */
+async function fetchFindings(): Promise<FindingResult[]> {
+  const data = await sparqlRequest(getFindingsQuery);
+  return data.results.bindings.map((binding: Finding) => ({
+    finding: binding.description.value,
+    paper: binding.paper.value,
+  }));
+}
+
+/**
+ * Fetches abstracts for list of papers
+ */
+async function fetchAbstractsForPapers(papers: string[]): Promise<string[]> {
+  const data = await sparqlRequest(getAbstractsForPapersQuery(papers));
   return data.results.bindings.map(
     (binding: Abstract) => binding.abstract.value
   );
@@ -55,19 +87,34 @@ function ensureKeywordsArray(chosen: string | string[]): string[] {
 }
 
 /**
+ * Ensures the chosen keywords are in array format
+ */
+function ensureFindingsArray(chosen: string | string[]): string[] {
+  if (Array.isArray(chosen)) {
+    return chosen;
+  }
+
+  return chosen
+    .slice(1, -1) // Remove brackets
+    .split(";;;")
+    .map((s) => s.trim());
+}
+
+/**
  * Creates a hypothesis generation prompt
  */
 function createHypothesisPrompt(
+  findings: string[],
   keywords: string[],
-  abstractsOne: string[],
-  abstractsTwo: string[]
+  abstractsFindings: string[],
+  abstractKeywords: string[]
 ): string {
   return `
 You are a biomedical scientist specializing in generating novel, testable hypotheses that connect seemingly disparate research areas.
 
 ## Task
-Develop a mechanistic hypothesis that connects ${keywords[0]} and ${
-    keywords[1]
+Develop a mechanistic hypothesis that connects findings ${findings[0]} and ${
+    findings[1]
   } through specific biological pathways, molecular mechanisms, or cellular processes that could plausibly link these fields.
 
 ## Hypothesis Structure
@@ -84,13 +131,13 @@ Develop a mechanistic hypothesis that connects ${keywords[0]} and ${
 - Parsimony: Favor simpler explanations that require fewer assumptions
 - Falsifiability: Ensure the hypothesis can be tested and potentially disproven
 
-## Research Abstracts for ${keywords[0]}:
-${abstractsOne
+## Research Abstracts for the findings:
+${abstractsFindings
   .map((abstract, index) => `Abstract ${index + 1}:\n${abstract}`)
   .join("\n\n")}
 
-## Research Abstracts for ${keywords[1]}:
-${abstractsTwo
+## Research Abstracts for the keywords relevant to the findings:
+${abstractKeywords
   .map((abstract, index) => `Abstract ${index + 1}:\n${abstract}`)
   .join("\n\n")}
 
@@ -114,21 +161,60 @@ export async function generateHypothesis(
   //   .client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
   logger.info("Generating hypothesis...");
   try {
-    // Fetch and choose keywords
+    // Fetch and choose findings
+    const findings = await fetchFindings();
+    const chosen = await chooseTwoRelevantFindings(
+      findings.map((f) => f.finding)
+    );
+    const chosenFindings = ensureFindingsArray(chosen);
+    console.log("Chosen findings:", chosenFindings);
+
+    // TODO: more ideal to get both the paper and the finding from the LLM prompt rather than searching like this
+    const findingPapers = findings
+      .filter((f) => chosenFindings.includes(f.finding))
+      .map((f) => f.paper);
+
+    const abstracts = await fetchAbstractsForPapers(findingPapers);
+
+    // makes sense to use both old keyword search + the finding search and combine the results
+    // Some papers are in new form with BIO ontologies, and some are in old format with regular keywords
+    // imo best way to do this in the future is to add the keywords to the BIO ontology format, since it looks like a useful way to search
+    // then first the keywords could be used to filter the papers, and then the findings could be used for actual hypotheses
+    // since im doing the task timeboxed for 1 day, im going to implement in the following way:
+
+    // for now, let's use the other papers which are in the other format to extract additional information from the abstracts
+    // let's get two relevant keywords, that are connected to the selected findings
     const keywords = await fetchKeywords();
-    const chosen = await chooseTwoRelevantKeywords(keywords);
-    const chosenKeywords = ensureKeywordsArray(chosen);
-    console.log("Chosen keywords:", chosenKeywords);
 
-    // Fetch abstracts for both keywords
-    const abstractsOne = await fetchAbstracts(chosenKeywords[0]);
-    const abstractsTwo = await fetchAbstracts(chosenKeywords[1]);
+    const keywordsString = await chooseTwoRelevantKeywords(
+      keywords,
+      chosenFindings
+    );
 
-    // Create prompt and generate hypothesis
+    const chosenKeywords = ensureKeywordsArray(keywordsString);
+
+    // get additional abstracts for the hypotheses generation (sourcing from minimum 4 papers instead of 2)
+    const abstractsKeywordOne = await fetchAbstracts(chosenKeywords[0]);
+    const abstractsKeywordTwo = await fetchAbstracts(chosenKeywords[1]);
+
+    // combine the abstracts from the findings and the keywords
+    const keywordAbstractsResult = [
+      ...abstractsKeywordOne,
+      ...abstractsKeywordTwo,
+    ];
+    const keywordAbstracts = keywordAbstractsResult.map((a) => a.abstract);
+    const keywordPapers = keywordAbstractsResult.map((a) => a.paper);
+    const usedPapers = [...findingPapers, ...keywordPapers];
+    const usedAbstracts = [
+      ...abstracts,
+      ...keywordAbstractsResult.map((a) => a.abstract),
+    ];
+
     const hypothesisGenerationPrompt = createHypothesisPrompt(
+      chosenFindings,
       chosenKeywords,
-      abstractsOne,
-      abstractsTwo
+      abstracts,
+      keywordAbstracts
     );
 
     console.log("Generating hypothesis...");
@@ -149,9 +235,39 @@ export async function generateHypothesis(
 
     console.log("Generated Hypothesis:");
     console.log(hypothesis);
+    console.log(
+      "For verifiability, here are the papers to cross check the hypotheses:"
+    );
+    console.log(usedPapers);
+
+    const randomId = Math.random().toString(36).substring(2, 15);
+
+    // produce a hypothesis, citing the papers that were used to generate it, as well as the concrete findings and keywords
+    const hypothesisJSONLD = {
+      "@context": {
+        dcterms: "http://purl.org/dc/terms/",
+        cito: "http://purl.org/spar/cito/",
+        deo: "http://purl.org/spar/deo/",
+      },
+      "@id": `https://hypothesis.bioagent.ai/${randomId}`,
+      "@type": "deo:FutureWork",
+      "cito:usesDataFrom": usedPapers,
+      "dcterms:references": [hypothesis],
+      "dcterms:subject": chosenKeywords,
+      "dcterms:source": chosenFindings,
+    };
+
+    // am currently using oxigraph locally with the script, but here we would store it to DKG
+
+    await fs.writeFile(
+      `./sampleJsonLdsNew/hypothesis${randomId}.json`,
+      JSON.stringify(hypothesisJSONLD, null, 2)
+    );
+
     const chunks = await splitMarkdownForDiscord(hypothesis);
     const messageIds = [];
     for (const chunk of chunks) {
+      // uncomment this when ready to send to discord
       // const message = await channel.send(chunk.content);
       messageIds.push("mock");
     }
