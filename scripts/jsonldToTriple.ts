@@ -74,7 +74,7 @@ async function processJsonLdFile(filePath: string) {
 }
 
 async function main() {
-  const outputDir = path.join(process.cwd(), "sampleJsonLds");
+  const outputDir = path.join(process.cwd(), "sampleJsonLdsNew");
   const files = fs
     .readdirSync(outputDir)
     .filter((file) => file.endsWith(".json"));
