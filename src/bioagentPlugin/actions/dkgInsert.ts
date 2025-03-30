@@ -100,6 +100,7 @@ export const dkgInsert: Action = {
       logger.log("No ID found.");
     }
 
+    // TODO: should read from arxiv link or something like that rather than having it hardcoded like here
     const ka = await generateKaFromPdf("./science.pdf", DkgClient);
 
     let createAssetResult: { UAL: string } | undefined;
@@ -114,12 +115,12 @@ export const dkgInsert: Action = {
         JSON.stringify(ka, null, 2)
       );
 
-      // createAssetResult = await DkgClient.asset.create(
-      //   {
-      //     public: ka,
-      //   },
-      //   { epochsNum: 12 }
-      // );
+      createAssetResult = await DkgClient.asset.create(
+        {
+          public: ka,
+        },
+        { epochsNum: 12 }
+      );
 
       logger.log("======================== ASSET CREATED");
       logger.log(JSON.stringify(createAssetResult));

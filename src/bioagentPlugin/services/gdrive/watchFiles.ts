@@ -1,4 +1,6 @@
 import { IAgentRuntime, logger } from "@elizaos/core";
+import { initDriveClient, FOLDERS } from "./client.js";
+import { drive_v3 } from "googleapis";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -8,14 +10,20 @@ import DKG from "dkg.js";
 import { Anthropic } from "@anthropic-ai/sdk";
 import { evaluationPrompt } from "../../evaluators/evaluationPrompt.js";
 import { fromPath } from "pdf2pic";
+type Schema$File = drive_v3.Schema$File;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const DOWNLOAD_FOLDER = path.join(__dirname, "..", "..", "downloads");
-const TEST_PDF_PATH = "./science.pdf";
 
 type DKGClient = typeof DKG | null;
 let DkgClient: DKGClient = null;
+
+interface FileInfo {
+  id: string;
+  name: string;
+  md5Checksum: string;
+}
 
 async function ensureDownloadFolder() {
   try {
@@ -26,8 +34,53 @@ async function ensureDownloadFolder() {
   }
 }
 
+async function downloadFile(
+  drive: drive_v3.Drive,
+  file: FileInfo
+): Promise<Buffer> {
+  const res = await drive.files.get(
+    {
+      fileId: file.id,
+      alt: "media",
+    },
+    {
+      responseType: "arraybuffer",
+      params: {
+        supportsAllDrives: true,
+        acknowledgeAbuse: true,
+      },
+      headers: {
+        Range: "bytes=0-",
+      },
+    }
+  );
+
+  return Buffer.from(res.data as ArrayBuffer);
+}
+
+async function getFilesInfo(): Promise<FileInfo[]> {
+  const drive = await initDriveClient();
+  const response = await drive.files.list({
+    q: `'${FOLDERS.MAIN_FOLDER}' in parents and mimeType='application/pdf' and trashed=false`,
+    fields: "files(id, name, md5Checksum)",
+    orderBy: "name",
+  });
+
+  return (response.data.files || [])
+    .filter(
+      (
+        f
+      ): f is Schema$File & {
+        id: string;
+        name: string;
+        md5Checksum: string;
+      } => f.id != null && f.name != null && f.md5Checksum != null
+    )
+    .map((f) => ({ id: f.id, name: f.name, md5Checksum: f.md5Checksum }));
+}
+
 export async function watchFolderChanges(runtime: IAgentRuntime) {
-  logger.info("Starting test mode with local PDF file");
+  logger.info("Watching folder changes");
   DkgClient = new DKG({
     environment: runtime.getSetting("DKG_ENVIRONMENT"),
     endpoint: runtime.getSetting("DKG_HOSTNAME"),
@@ -42,65 +95,110 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     contentType: "all",
     nodeApiVersion: "/v1",
   });
-
+  let knownHashes = new Set<string>();
+  let processedFiles = new Set<string>(); // Track files we've already processed
   await ensureDownloadFolder();
+  const drive = await initDriveClient();
+  let intervalId: NodeJS.Timeout | null = null;
+  let isRunning = true;
 
-  try {
-    logger.info("Processing test PDF file...");
-    const ka = await generateKaFromPdf(TEST_PDF_PATH, DkgClient);
-    if (!ka) {
-      logger.error("Failed to generate KA from PDF");
-      return;
-    }
+  const checkForChanges = async () => {
+    if (!isRunning) return;
 
-    await fs.writeFile(
-      path.join(DOWNLOAD_FOLDER, "science.ka.json"),
-      JSON.stringify(ka, null, 2)
-    );
-
-    let createAssetResult: { UAL: string } | undefined;
     try {
-      logger.log("Publishing message to DKG");
+      const files = await getFilesInfo();
+      const currentHashes = new Set(files.map((f) => f.md5Checksum));
 
-      createAssetResult = await DkgClient.asset.create(
-        {
-          public: ka,
-        },
-        { epochsNum: 12 }
+      // Check for new files by hash that we haven't processed yet
+      const newFiles = files.filter(
+        (f) => !knownHashes.has(f.md5Checksum) && !processedFiles.has(f.id)
       );
 
-      logger.log("======================== ASSET CREATED");
-      logger.log(JSON.stringify(createAssetResult));
-    } catch (error) {
-      logger.error(
-        "Error occurred while publishing message to DKG:",
-        error.message
-      );
-
-      if (error.stack) {
-        logger.error("Stack trace:", error.stack);
-      }
-      if (error.response) {
-        logger.error(
-          "Response data:",
-          JSON.stringify(error.response.data, null, 2)
+      if (newFiles.length > 0) {
+        logger.info(
+          "New files detected:",
+          newFiles.map((f) => `${f.name} (${f.md5Checksum})`)
         );
+
+        // Download new files
+        for (const file of newFiles) {
+          logger.info(`Downloading ${file.name}...`);
+          const pdfBuffer = await downloadFile(drive, file);
+          logger.info(`Successfully downloaded ${file.name}`);
+
+          // Mark as processed immediately after download
+          processedFiles.add(file.id);
+
+          const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const pdfPath = path.join(DOWNLOAD_FOLDER, safeFileName);
+          await fs.writeFile(pdfPath, pdfBuffer);
+
+          const ka = await generateKaFromPdf(pdfPath, DkgClient);
+          if (!ka) {
+            continue;
+          }
+          await fs.writeFile(
+            path.join(DOWNLOAD_FOLDER, `${file.name}.ka.json`),
+            JSON.stringify(ka, null, 2)
+          );
+
+          let createAssetResult: { UAL: string } | undefined;
+          try {
+            logger.log("Publishing message to DKG");
+
+            createAssetResult = await DkgClient.asset.create(
+              {
+                public: ka,
+              },
+              { epochsNum: 12 }
+            );
+
+            logger.log("======================== ASSET CREATED");
+            logger.log(JSON.stringify(createAssetResult));
+          } catch (error) {
+            logger.error(
+              "Error occurred while publishing message to DKG:",
+              error.message
+            );
+
+            if (error.stack) {
+              logger.error("Stack trace:", error.stack);
+            }
+            if (error.response) {
+              logger.error(
+                "Response data:",
+                JSON.stringify(error.response.data, null, 2)
+              );
+            }
+          }
+          logger.info("Generating hypothesis from DKG");
+          const hypothesis = await generateHypothesis(ka);
+          logger.info(`Hypothesis: ${hypothesis}`);
+          logger.info("Evaluating hypothesis");
+          const score = await evaluateHypothesis(hypothesis, pdfPath);
+          logger.info(`Hypothesis evaluated: ${score}`);
+        }
       }
+
+      knownHashes = currentHashes;
+    } catch (error) {
+      logger.error("Error checking files:", error.stack);
     }
+  };
 
-    logger.info("Generating hypothesis from DKG");
-    const hypothesis = await generateHypothesis(ka);
-    logger.info(`Hypothesis: ${hypothesis}`);
-    logger.info("Evaluating hypothesis");
-    const score = await evaluateHypothesis(hypothesis, TEST_PDF_PATH);
-    logger.info(`Hypothesis evaluated: ${score}`);
-  } catch (error) {
-    logger.error("Error processing test PDF:", error.stack);
-  }
+  // Start the interval
+  checkForChanges();
+  intervalId = setInterval(checkForChanges, 10000); // Check every 10 seconds
 
-  // Return empty stop function since we're not running an interval
+  // Return a function to stop watching
   return {
-    stop: () => {},
+    stop: () => {
+      isRunning = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    },
   };
 }
 
