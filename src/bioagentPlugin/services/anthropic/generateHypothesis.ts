@@ -108,10 +108,10 @@ ${abstractsTwo
 export async function generateHypothesis(
   agentRuntime: IAgentRuntime
 ): Promise<{ hypothesis: string; hypothesisMessageId: string }> {
-  const channel = await agentRuntime
-    .getService("discord")
-    // @ts-ignore
-    .client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
+  // const channel = await agentRuntime
+  //   .getService("discord")
+  //   // @ts-ignore
+  //   .client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
   logger.info("Generating hypothesis...");
   try {
     // Fetch and choose keywords
@@ -152,8 +152,8 @@ export async function generateHypothesis(
     const chunks = await splitMarkdownForDiscord(hypothesis);
     const messageIds = [];
     for (const chunk of chunks) {
-      const message = await channel.send(chunk.content);
-      messageIds.push(message.id);
+      // const message = await channel.send(chunk.content);
+      messageIds.push("mock");
     }
     return { hypothesis, hypothesisMessageId: messageIds[0] }; // return the first message id, which is the hypothesis heading
   } catch (error) {
