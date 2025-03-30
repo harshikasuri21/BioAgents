@@ -17,6 +17,7 @@ import { createDKGMemoryTemplate } from "../templates.ts";
 // @ts-ignore
 import DKG from "dkg.js";
 import { DKGMemorySchema, isDKGMemoryContent } from "../types.ts";
+import { generateKaFromPdf } from "../kaService/kaService.ts";
 
 // Define a basic type for the DKG client
 type DKGClient = typeof DKG | null;
@@ -98,19 +99,7 @@ export const dkgInsert: Action = {
       logger.log("No ID found.");
     }
 
-    const createDKGMemoryContext = composePrompt({
-      state,
-      template: createDKGMemoryTemplate,
-    });
-
-    const memoryKnowledgeGraph = await runtime.useModel(
-      ModelType.OBJECT_SMALL,
-      {
-        prompt: createDKGMemoryContext,
-        schema: DKGMemorySchema,
-        output: "object",
-      }
-    );
+    const ka = await generateKaFromPdf("./science.pdf", DkgClient);
 
     let createAssetResult: { UAL: string } | undefined;
 
@@ -121,7 +110,7 @@ export const dkgInsert: Action = {
 
       createAssetResult = await DkgClient.asset.create(
         {
-          public: memoryKnowledgeGraph.object,
+          public: ka,
         },
         { epochsNum: 12 }
       );
