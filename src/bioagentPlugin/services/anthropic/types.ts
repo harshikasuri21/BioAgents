@@ -31,3 +31,14 @@ export type FindingResult = {
   finding: string;
   paper: string;
 };
+
+export type Hypothesis = {
+  hypothesis: {
+    type: string;
+    value: string;
+  };
+  hypothesisEntity: {
+    type: string;
+    value: string;
+  };
+};

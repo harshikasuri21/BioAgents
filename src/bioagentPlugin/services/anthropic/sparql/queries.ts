@@ -58,3 +58,23 @@ export const getAbstractsForPapersQuery = (papers: string[]): string => {
     }
   `;
 };
+
+export const getPreviousHypothesesForKeywordsQuery = (
+  keywords: string[]
+): string => {
+  const valuesBlock = keywords.map((keyword) => `"${keyword}"`).join(" ");
+
+  return `
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX deo: <http://purl.org/spar/deo/>
+
+    SELECT DISTINCT ?hypothesisEntity ?hypothesis
+    WHERE {
+      ?hypothesisEntity a deo:FutureWork ;
+                        dcterms:subject ?subject ;
+                        dcterms:references ?hypothesis .
+
+      VALUES ?subject { ${valuesBlock} }
+    }
+  `;
+};

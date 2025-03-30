@@ -4,7 +4,7 @@ import {
   chooseTwoRelevantFindings,
   chooseTwoRelevantKeywords,
 } from "./chooseTwoRelevant";
-import { Binding, Abstract, Finding, FindingResult } from "./types";
+import { Binding, Abstract, Finding, FindingResult, Hypothesis } from "./types";
 import { sparqlRequest } from "./sparql/makeRequest";
 import { FileError, SparqlError } from "./errors";
 import { anthropic } from "./client";
@@ -14,6 +14,7 @@ import {
   getAbstractsQuery,
   getFindingsQuery,
   getAbstractsForPapersQuery,
+  getPreviousHypothesesForKeywordsQuery,
 } from "./sparql/queries";
 /**
  * Loads a SPARQL query from a file
@@ -34,6 +35,18 @@ export async function loadQuery(path: string): Promise<string> {
 async function fetchKeywords(): Promise<string[]> {
   const data = await sparqlRequest(getKeywordsQuery);
   return data.results.bindings.map((binding: Binding) => binding.obj.value);
+}
+
+/**
+ * Fetches previous hypotheses for an array of keywords
+ */
+async function fetchPreviousHypotheses(keywords: string[]): Promise<string[]> {
+  const data = await sparqlRequest(
+    getPreviousHypothesesForKeywordsQuery(keywords)
+  );
+  return data.results.bindings.map(
+    (binding: Hypothesis) => binding.hypothesis.value
+  );
 }
 
 /**
@@ -107,7 +120,8 @@ function createHypothesisPrompt(
   findings: string[],
   keywords: string[],
   abstractsFindings: string[],
-  abstractKeywords: string[]
+  abstractKeywords: string[],
+  previousHypotheses: string[]
 ): string {
   return `
 You are a biomedical scientist specializing in generating novel, testable hypotheses that connect seemingly disparate research areas.
@@ -136,10 +150,22 @@ ${abstractsFindings
   .map((abstract, index) => `Abstract ${index + 1}:\n${abstract}`)
   .join("\n\n")}
 
+## Relevant keywords to the findings:
+${keywords.join(", ")}
+
 ## Research Abstracts for the keywords relevant to the findings:
 ${abstractKeywords
   .map((abstract, index) => `Abstract ${index + 1}:\n${abstract}`)
   .join("\n\n")}
+
+## Previous Hypotheses for the relevant keywords:
+${
+  previousHypotheses.length
+    ? previousHypotheses
+        .map((hypothesis, index) => `Hypothesis ${index + 1}:\n${hypothesis}`)
+        .join("\n\n")
+    : "There are no previous hypotheses."
+}
 
 ## Additional Guidelines
 - Cite specific abstracts when drawing information (e.g., "As shown in Abstract 3...")
@@ -204,17 +230,20 @@ export async function generateHypothesis(
     ];
     const keywordAbstracts = keywordAbstractsResult.map((a) => a.abstract);
     const keywordPapers = keywordAbstractsResult.map((a) => a.paper);
-    const usedPapers = [...findingPapers, ...keywordPapers];
+    const usedPapers = [...new Set([...findingPapers, ...keywordPapers])];
     const usedAbstracts = [
       ...abstracts,
       ...keywordAbstractsResult.map((a) => a.abstract),
     ];
 
+    const previousHypotheses = await fetchPreviousHypotheses(chosenKeywords);
+
     const hypothesisGenerationPrompt = createHypothesisPrompt(
       chosenFindings,
       chosenKeywords,
       abstracts,
-      keywordAbstracts
+      keywordAbstracts,
+      previousHypotheses
     );
 
     console.log("Generating hypothesis...");
@@ -255,6 +284,7 @@ export async function generateHypothesis(
       "dcterms:references": [hypothesis],
       "dcterms:subject": chosenKeywords,
       "dcterms:source": chosenFindings,
+      "dcterms:abstract": usedAbstracts,
     };
 
     // am currently using oxigraph locally with the script, but here we would store it to DKG
