@@ -18,6 +18,7 @@ import { createDKGMemoryTemplate } from "../templates.ts";
 import DKG from "dkg.js";
 import { DKGMemorySchema, isDKGMemoryContent } from "../types.ts";
 import { generateKaFromPdf } from "../kaService/kaService.ts";
+import { writeFile } from "fs/promises";
 
 // Define a basic type for the DKG client
 type DKGClient = typeof DKG | null;
@@ -108,12 +109,17 @@ export const dkgInsert: Action = {
     try {
       logger.log("Publishing message to DKG");
 
-      createAssetResult = await DkgClient.asset.create(
-        {
-          public: ka,
-        },
-        { epochsNum: 12 }
+      await writeFile(
+        `./sampleJsonLdsNew/${encodeURIComponent((ka["@id"] ?? "example") as string)}.json`,
+        JSON.stringify(ka, null, 2)
       );
+
+      // createAssetResult = await DkgClient.asset.create(
+      //   {
+      //     public: ka,
+      //   },
+      //   { epochsNum: 12 }
+      // );
 
       logger.log("======================== ASSET CREATED");
       logger.log(JSON.stringify(createAssetResult));
