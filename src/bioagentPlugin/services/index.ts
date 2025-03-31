@@ -22,9 +22,10 @@ export class HypothesisService extends Service {
   static async start(runtime: IAgentRuntime) {
     logger.info("*** Starting hypotheses service ***");
     const service = new HypothesisService(runtime);
-    // const interval = hypGenEvalLoop(runtime);
+    const interval = await hypGenEvalLoop(runtime);
+
     process.on("SIGINT", async () => {
-      // stopHypGenEvalLoop(interval);
+      stopHypGenEvalLoop(interval);
     });
 
     return service;

@@ -58,7 +58,7 @@ async function processJsonLdFile(filePath: string) {
         } catch (error) {
           console.error(
             `Error storing ${path.basename(filePath)} in Oxigraph:`,
-            error
+            ntriples
           );
           reject(error);
         }
@@ -74,7 +74,7 @@ async function processJsonLdFile(filePath: string) {
 }
 
 async function main() {
-  const outputDir = path.join(process.cwd(), "sampleJsonLds");
+  const outputDir = path.join(process.cwd(), "sampleJsonLdsNew");
   const files = fs
     .readdirSync(outputDir)
     .filter((file) => file.endsWith(".json"));
@@ -86,7 +86,7 @@ async function main() {
     try {
       await processJsonLdFile(filePath);
     } catch (error) {
-      console.error(`Failed to process ${file}:`, error);
+      console.error(`Failed to process ${file}:`, error.response.data);
     }
   }
 

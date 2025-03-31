@@ -154,9 +154,9 @@ export const subgraph_atc_example_output = `
 export const gene_ontology_example_input = `
 [
     {
-        "subject": "GO_XXXXXX",
+        "subject": {"term": "GO term example subject name", "id": "GO_XXXXXX"},
         "predicate": "some of the gene ontology relationships",
-        "object": "GO_XXXXXX",
+        "object": {"term": "GO term example object name", "id": "GO_XXXXXX"},
         "explanation": "example explanation ..."
     }
 ]
@@ -259,16 +259,18 @@ export const example_spar_output = `
 export const example_go_output = `
 [
         {
-            "@id": "http://purl.obolibrary.org/obo/GO_XXXXX",
+            "@id": "http://purl.obolibrary.org/obo/GO_XXXXX", // Subject ID
+            "dcterms:name": "Subject name",
             "obi:RO_XXXXX": {  /* Note for model: corresponds to a specific relationship */
-                "@id": "http://purl.obolibrary.org/obo/GO_YYYYY",
+                "@id": "http://purl.obolibrary.org/obo/GO_YYYYY",  // Object ID
                 "dcterms:description": "Process X positively regulates Process Y in cell type Z. This involves the modulation of Factor A and Factor B, affecting outcome C as indicated by the experimental results."
+                "dcterms:name": "Object name",
             }
         },
         {
-            "@id": "http://purl.obolibrary.org/obo/GO_AAAAA",
+            "@id": "http://purl.obolibrary.org/obo/GO_AAAAA", // Subject ID
             "obi:BFO_XXXXX": {  /* Note for model: corresponds to a specific relationship */
-                "@id": "http://purl.obolibrary.org/obo/GO_BBBBB",
+                "@id": "http://purl.obolibrary.org/obo/GO_BBBBB", // Object ID
                 "dcterms:description": "Description of the process or relationship goes here."
             }
         }
@@ -305,12 +307,12 @@ export const example_chebi_output = `
 
 export const example_json_citations = [
   {
-    '@id': 'https://doi.org/10.1234/another-article',
-    'dcterms:title': 'Related Work on Y',
+    "@id": "https://doi.org/10.1234/another-article",
+    "dcterms:title": "Related Work on Y",
   },
   {
-    '@id': 'https://doi.org/10.5678/related-work',
-    'dcterms:title': 'Further Discussion on Z',
+    "@id": "https://doi.org/10.5678/related-work",
+    "dcterms:title": "Further Discussion on Z",
   },
 ];
 
