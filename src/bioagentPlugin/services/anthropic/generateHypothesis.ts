@@ -202,6 +202,8 @@ export async function generateHypothesis(
 
     const abstracts = await fetchAbstractsForPapers(findingPapers);
 
+    logger.info("Abstracts:", abstracts);
+
     // makes sense to use both old keyword search + the finding search and combine the results
     // Some papers are in new form with BIO ontologies, and some are in old format with regular keywords
     // imo best way to do this in the future is to add the keywords to the BIO ontology format, since it looks like a useful way to search
@@ -216,8 +218,9 @@ export async function generateHypothesis(
       keywords,
       chosenFindings
     );
-
+    logger.info("Keywords:", keywordsString);
     const chosenKeywords = ensureKeywordsArray(keywordsString);
+    logger.info("Chosen keywords:", chosenKeywords);
 
     // get additional abstracts for the hypotheses generation (sourcing from minimum 4 papers instead of 2)
     const abstractsKeywordOne = await fetchAbstracts(chosenKeywords[0]);
@@ -237,6 +240,7 @@ export async function generateHypothesis(
     ];
 
     const previousHypotheses = await fetchPreviousHypotheses(chosenKeywords);
+    logger.info("Previous hypotheses:", previousHypotheses);
 
     const hypothesisGenerationPrompt = createHypothesisPrompt(
       chosenFindings,
