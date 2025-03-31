@@ -58,7 +58,7 @@ async function processJsonLdFile(filePath: string) {
         } catch (error) {
           console.error(
             `Error storing ${path.basename(filePath)} in Oxigraph:`,
-            error
+            ntriples
           );
           reject(error);
         }
@@ -86,7 +86,7 @@ async function main() {
     try {
       await processJsonLdFile(filePath);
     } catch (error) {
-      console.error(`Failed to process ${file}:`, error);
+      console.error(`Failed to process ${file}:`, error.response.data);
     }
   }
 

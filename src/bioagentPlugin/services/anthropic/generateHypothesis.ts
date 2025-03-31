@@ -181,10 +181,10 @@ ${
 export async function generateHypothesis(
   agentRuntime: IAgentRuntime
 ): Promise<{ hypothesis: string; hypothesisMessageId: string }> {
-  // const channel = await agentRuntime
-  //   .getService("discord")
-  //   // @ts-ignore
-  //   .client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
+  const channel = await agentRuntime
+    .getService("discord")
+    // @ts-ignore
+    .client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
   logger.info("Generating hypothesis...");
   try {
     // Fetch and choose findings
@@ -193,7 +193,7 @@ export async function generateHypothesis(
       findings.map((f) => f.finding)
     );
     const chosenFindings = ensureFindingsArray(chosen);
-    console.log("Chosen findings:", chosenFindings);
+    logger.info("Chosen findings:", chosenFindings);
 
     // TODO: more ideal to get both the paper and the finding from the LLM prompt rather than searching like this
     const findingPapers = findings
@@ -246,7 +246,7 @@ export async function generateHypothesis(
       previousHypotheses
     );
 
-    console.log("Generating hypothesis...");
+    logger.info("Generating hypothesis...");
     const response = await anthropic.messages.create({
       model: "claude-3-7-sonnet-latest",
       messages: [{ role: "user", content: hypothesisGenerationPrompt }],
@@ -262,12 +262,12 @@ export async function generateHypothesis(
         ? response.content[1].text
         : "No hypothesis generated";
 
-    console.log("Generated Hypothesis:");
-    console.log(hypothesis);
-    console.log(
+    logger.info("Generated Hypothesis:");
+    logger.info(hypothesis);
+    logger.info(
       "For verifiability, here are the papers to cross check the hypotheses:"
     );
-    console.log(usedPapers);
+    logger.info(usedPapers);
 
     const randomId = Math.random().toString(36).substring(2, 15);
 
@@ -297,9 +297,8 @@ export async function generateHypothesis(
     const chunks = await splitMarkdownForDiscord(hypothesis);
     const messageIds = [];
     for (const chunk of chunks) {
-      // uncomment this when ready to send to discord
-      // const message = await channel.send(chunk.content);
-      messageIds.push("mock");
+      const message = await channel.send(chunk.content);
+      messageIds.push(message.id);
     }
     return { hypothesis, hypothesisMessageId: messageIds[0] }; // return the first message id, which is the hypothesis heading
   } catch (error) {
