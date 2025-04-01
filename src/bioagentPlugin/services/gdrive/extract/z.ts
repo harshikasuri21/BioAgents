@@ -134,7 +134,7 @@ const CitationSchema = z.object({
 });
 
 // ontology schema
-const OntologySchema = z.object({
+export const OntologySchema = z.object({
   "@id": z
     .string()
     .describe(
@@ -145,6 +145,10 @@ const OntologySchema = z.object({
     .describe(
       "Human-readable label of the ontology concept discussed in the paper"
     ),
+});
+
+export const OntologiesSchema = z.object({
+  ontologies: z.array(OntologySchema),
 });
 
 // research paper schema
@@ -191,11 +195,6 @@ export const PaperSchema = z
       .array(CitationSchema)
       .describe(
         "References/citations this paper includes. Each entry has an identifier, type, title, and DOI."
-      ),
-    "cito:discusses": z
-      .array(OntologySchema)
-      .describe(
-        "Ontology concepts explicitly/implicitly addressed by this paper, e.g. GO terms or DOID terms."
       ),
   })
   .describe(

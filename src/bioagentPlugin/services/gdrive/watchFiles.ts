@@ -9,7 +9,11 @@ import { generateKaFromPdf } from "../../kaService/kaService.js";
 import DKG from "dkg.js";
 import { Anthropic } from "@anthropic-ai/sdk";
 import { evaluationPrompt } from "../../evaluators/evaluationPrompt.js";
-import { fromPath } from "pdf2pic";
+import { fromPath, fromBuffer } from "pdf2pic";
+import { pdf2PicOptions } from "./index.js";
+import { OpenAIImage } from "./extract/types.js";
+import { generateKa } from "./extract";
+import { storeJsonLd } from "./storeJsonLdToKg.js";
 type Schema$File = drive_v3.Schema$File;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -129,13 +133,29 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           // Mark as processed immediately after download
           processedFiles.add(file.id);
 
-          const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const pdfPath = path.join(DOWNLOAD_FOLDER, safeFileName);
-          await fs.writeFile(pdfPath, pdfBuffer);
+          // const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          // const pdfPath = path.join(DOWNLOAD_FOLDER, safeFileName);
+          // await fs.writeFile(pdfPath, pdfBuffer);
 
-          const ka = await generateKaFromPdf(pdfPath, DkgClient);
-          if (!ka) {
+          const converter = fromBuffer(pdfBuffer, pdf2PicOptions);
+          const storeHandler = await converter.bulk(-1, {
+            responseType: "base64",
+          });
+          const images: OpenAIImage[] = storeHandler
+            .filter((page) => page.base64)
+            .map((page) => ({
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${page.base64}`,
+              },
+            }));
+
+          const ka = await generateKa(images);
+          const res = await storeJsonLd(ka);
+          if (!res) {
             continue;
+          } else {
+            logger.info("Successfully stored JSON-LD to Oxigraph");
           }
           await fs.writeFile(
             path.join(DOWNLOAD_FOLDER, `${file.name}.ka.json`),
@@ -144,17 +164,6 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
 
           let createAssetResult: { UAL: string } | undefined;
           try {
-            logger.log("Publishing message to DKG");
-
-            createAssetResult = await DkgClient.asset.create(
-              {
-                public: ka,
-              },
-              { epochsNum: 12 }
-            );
-
-            logger.log("======================== ASSET CREATED");
-            logger.log(JSON.stringify(createAssetResult));
           } catch (error) {
             logger.error(
               "Error occurred while publishing message to DKG:",
@@ -171,12 +180,6 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
               );
             }
           }
-          logger.info("Generating hypothesis from DKG");
-          const hypothesis = await generateHypothesis(ka);
-          logger.info(`Hypothesis: ${hypothesis}`);
-          logger.info("Evaluating hypothesis");
-          const score = await evaluateHypothesis(hypothesis, pdfPath);
-          logger.info(`Hypothesis evaluated: ${score}`);
         }
       }
 
