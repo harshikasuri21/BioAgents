@@ -29,15 +29,6 @@ interface FileInfo {
   md5Checksum: string;
 }
 
-async function ensureDownloadFolder() {
-  try {
-    await fs.mkdir(DOWNLOAD_FOLDER, { recursive: true });
-  } catch (error) {
-    logger.error("Error creating download folder:", error);
-    throw error;
-  }
-}
-
 async function downloadFile(
   drive: drive_v3.Drive,
   file: FileInfo
@@ -101,7 +92,6 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
   });
   let knownHashes = new Set<string>();
   let processedFiles = new Set<string>(); // Track files we've already processed
-  await ensureDownloadFolder();
   const drive = await initDriveClient();
   let intervalId: NodeJS.Timeout | null = null;
   let isRunning = true;
@@ -132,10 +122,6 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
 
           // Mark as processed immediately after download
           processedFiles.add(file.id);
-
-          // const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          // const pdfPath = path.join(DOWNLOAD_FOLDER, safeFileName);
-          // await fs.writeFile(pdfPath, pdfBuffer);
 
           const converter = fromBuffer(pdfBuffer, pdf2PicOptions);
           const storeHandler = await converter.bulk(-1, {

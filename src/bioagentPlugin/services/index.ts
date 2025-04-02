@@ -1,18 +1,8 @@
 import { Service, IAgentRuntime, logger } from "@elizaos/core";
 import { hypGenEvalLoop, stopHypGenEvalLoop } from "./anthropic/hypGenEvalLoop";
 import { watchFolderChanges } from "./gdrive";
-
-/**
- * Interfaces
- */
-interface Image {
-  type: "image";
-  source: {
-    type: "base64";
-    media_type: "image/png";
-    data: string;
-  };
-}
+import { sql } from "drizzle-orm";
+import { fileMetadataTable } from "src/schemas/fileMetadata";
 
 export class HypothesisService extends Service {
   static serviceType = "hypothesis";
@@ -21,6 +11,23 @@ export class HypothesisService extends Service {
     super(runtime);
   }
   static async start(runtime: IAgentRuntime) {
+    setTimeout(async () => {
+      {
+        const { rows } = await runtime.db.execute(sql`SELECT * FROM tasks;`);
+        logger.info("Database", rows);
+      }
+      {
+        const result = await runtime.db.select().from(fileMetadataTable);
+        logger.info("File Metadata", result);
+      }
+      {
+        const { rows, fields } = await runtime.db.execute(
+          sql`SELECT * FROM biograph.file_metadata;`
+        );
+        logger.info("File Metadata", rows);
+        logger.info("Fields", fields);
+      }
+    }, 30000);
     logger.info("*** Starting hypotheses service ***");
     const service = new HypothesisService(runtime);
     // const interval = await hypGenEvalLoop(runtime);
