@@ -74,6 +74,8 @@ COPY --from=builder /app/package.json ./
 COPY drizzle ./drizzle
 COPY src/db/schemas ./src/db/schemas
 COPY drizzle.config.ts ./
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 # Run migrations
 RUN pnpm db:migrate
@@ -85,4 +87,4 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Start the application
-CMD ["pnpm", "start"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
