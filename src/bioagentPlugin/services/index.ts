@@ -2,7 +2,7 @@ import { Service, IAgentRuntime, logger } from "@elizaos/core";
 import { hypGenEvalLoop, stopHypGenEvalLoop } from "./anthropic/hypGenEvalLoop";
 import { watchFolderChanges } from "./gdrive";
 import { sql } from "drizzle-orm";
-import { fileMetadataTable } from "src/schemas/fileMetadata";
+import { fileMetadataTable } from "src/db/schemas";
 
 export class HypothesisService extends Service {
   static serviceType = "hypothesis";

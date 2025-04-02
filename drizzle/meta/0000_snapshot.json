@@ -1,5 +1,5 @@
 {
-  "id": "8dc9c484-542c-4d10-9870-40962ab5894c",
+  "id": "7944878d-d03d-4e39-bf94-c6ba5374cf2e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -11,7 +11,7 @@
         "hash": {
           "name": "hash",
           "type": "text",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true
         },
         "file_name": {
@@ -49,14 +49,7 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "file_metadata_pkey": {
-          "name": "file_metadata_pkey",
-          "columns": [
-            "hash"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -69,7 +62,7 @@
         "id": {
           "name": "id",
           "type": "uuid",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true
         },
         "hypothesis": {
@@ -121,14 +114,7 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "hypotheses_pkey": {
-          "name": "hypotheses_pkey",
-          "columns": [
-            "id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
