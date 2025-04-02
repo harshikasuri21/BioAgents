@@ -16,7 +16,7 @@
 docker run --rm -v $PWD/oxigraph:/data -p 7878:7878 ghcr.io/oxigraph/oxigraph serve --location /data --bind 0.0.0.0:7878
 ```
 
-Now your local oxigraph instance is ready to load the processed scientific papers from the `sampleJsonLds` folder. More info [here](src/extract/README.md).
+Now your local oxigraph instance is ready to load the processed scientific papers from the `sampleJsonLds` folder. More info [here](src/bioagentPlugin/services/gdrive/extract/README.md).
 
 3. Load JSON-LD data into Oxigraph/OriginTrail's DKG:
 
@@ -42,4 +42,4 @@ pnpm run dev
 
 6. Enable the hypothesis generation service:
 
-- Uncomment line 25 and 27 in [index.ts](src/bioagentPlugin/services/index.ts)
+- Uncomment line 26 and 85 in [index.ts](src/bioagentPlugin/services/index.ts)
