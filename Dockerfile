@@ -77,9 +77,6 @@ COPY drizzle.config.ts ./
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Run migrations
-RUN pnpm db:migrate
-
 # Set environment variables
 ENV NODE_ENV=production
 
