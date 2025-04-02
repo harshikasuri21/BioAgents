@@ -23,7 +23,7 @@ export class HypothesisService extends Service {
   static async start(runtime: IAgentRuntime) {
     logger.info("*** Starting hypotheses service ***");
     const service = new HypothesisService(runtime);
-    // const interval = await hypGenEvalLoop(runtime);
+    const interval = await hypGenEvalLoop(runtime);
     runtime.registerTaskWorker({
       name: "HGE",
       async execute(runtime, options, task) {
@@ -79,10 +79,10 @@ export class HypothesisService extends Service {
     }
     await processRecurringTasks();
 
-    // await watchFolderChanges(runtime);
+    await watchFolderChanges(runtime);
 
     process.on("SIGINT", async () => {
-      // stopHypGenEvalLoop(interval);
+      stopHypGenEvalLoop(interval);
     });
 
     return service;
