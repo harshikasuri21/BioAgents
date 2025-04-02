@@ -70,6 +70,14 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
+# Copy database migrations and schemas
+COPY drizzle ./drizzle
+COPY src/db/schemas ./src/db/schemas
+COPY drizzle.config.ts ./
+
+# Run migrations
+RUN pnpm db:migrate
+
 # Set environment variables
 ENV NODE_ENV=production
 
