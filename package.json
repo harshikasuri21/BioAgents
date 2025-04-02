@@ -34,13 +34,15 @@
     "cheerio": "^1.0.0",
     "cli-progress": "^3.12.0",
     "dkg.js": "^8.0.4",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.41.0",
     "form-data": "^4.0.2",
     "googleapis": "^146.0.0",
     "jsonld-streaming-parser": "^5.0.0",
     "n3": "^1.24.2",
     "openai": "^4.90.0",
     "pdf2pic": "^3.1.4",
+    "pg": "^8.14.1",
     "punycode": "^2.3.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
@@ -49,6 +51,8 @@
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
     "@types/node": "^22.13.8",
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.6",
     "prettier": "3.5.3",
     "tsup": "8.4.0"
   },
@@ -61,7 +65,10 @@
     "deploy": "npx @elizaos/cli deploy",
     "format": "prettier --write ./src",
     "format:check": "prettier --check ./src",
-    "script": "node --import ./ts-node.register.mjs"
+    "script": "node --import ./ts-node.register.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "publishConfig": {
     "access": "public"
