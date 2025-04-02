@@ -1,5 +1,7 @@
 import { text, bigint, timestamp } from "drizzle-orm/pg-core";
-import { biographPgSchema } from "./biographPgSchema";
+import { pgSchema } from "drizzle-orm/pg-core";
+
+const biographPgSchema = pgSchema("biograph");
 
 export const fileMetadataTable = biographPgSchema.table("file_metadata", {
   hash: text("hash").notNull().primaryKey(),

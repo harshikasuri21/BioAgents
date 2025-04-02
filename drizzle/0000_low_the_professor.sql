@@ -1,5 +1,3 @@
-CREATE SCHEMA "biograph";
---> statement-breakpoint
 CREATE TYPE "public"."hypothesis_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TABLE "biograph"."file_metadata" (
 	"hash" text PRIMARY KEY NOT NULL,

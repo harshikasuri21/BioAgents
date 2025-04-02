@@ -1,6 +1,8 @@
 import { uuid, text, timestamp, numeric } from "drizzle-orm/pg-core";
-import { biographPgSchema } from "./biographPgSchema";
+import { pgSchema } from "drizzle-orm/pg-core";
 import { hypothesisStatusEnum } from "./customTypes";
+
+const biographPgSchema = pgSchema("biograph");
 
 export const hypothesesTable = biographPgSchema.table("hypotheses", {
   id: uuid("id").notNull().primaryKey(),

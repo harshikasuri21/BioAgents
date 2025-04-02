@@ -1,5 +1,5 @@
 {
-  "id": "7944878d-d03d-4e39-bf94-c6ba5374cf2e",
+  "id": "5d38df25-4275-4099-a6c5-48e4bc27a32e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -132,9 +132,7 @@
       ]
     }
   },
-  "schemas": {
-    "biograph": "biograph"
-  },
+  "schemas": {},
   "sequences": {},
   "roles": {},
   "policies": {},
