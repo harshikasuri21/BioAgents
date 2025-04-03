@@ -8,6 +8,13 @@
       "when": 1743614907315,
       "tag": "0000_low_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1743658602972,
+      "tag": "0001_heavy_hammerhead",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,8 @@ export const hypothesesTable = biographPgSchema.table("hypotheses", {
   status: hypothesisStatusEnum("status").default("pending"),
   judgellmScore: numeric("judgellm_score", { precision: 5, scale: 2 }),
   humanScore: numeric("human_score", { precision: 5, scale: 2 }),
+  research: text("research"),
+  evaluation: text("evaluation"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
