@@ -15,6 +15,27 @@
       "when": 1743658602972,
       "tag": "0001_heavy_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743678143647,
+      "tag": "0002_fluffy_valeria_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1743764000125,
+      "tag": "0003_glossy_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1743764800939,
+      "tag": "0004_green_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,8 @@ import {
 } from "../../evaluators/evaluationPrompt";
 import { EvaluationResult } from "../../evaluators/types";
 import { IAgentRuntime } from "@elizaos/core";
+import { anthropic } from "./client";
+
 export async function evaluateHypothesis(
   hypothesis: string
 ): Promise<EvaluationResult> {
@@ -42,6 +44,22 @@ export async function evaluateHypothesis(
 
   const evaluation = stepTwoCompletion.choices[0].message.content;
 
+  const scoreCompletion = await anthropic.messages.create({
+    model: "claude-3-5-haiku-latest",
+    messages: [
+      {
+        role: "user",
+        content: `You are a scientific hypothesis score extractor. Extract the numerical score (0-100) from the evaluation below. The score should already be present in the text. Output ONLY the integer score, no other text.\n\nEvaluation: ${evaluation}`,
+      },
+    ],
+    max_tokens: 100,
+  });
+
+  const score =
+    scoreCompletion.content[0].type === "text"
+      ? scoreCompletion.content[0].text
+      : "0";
+
   return {
     stepOne: {
       research: research || "",
@@ -51,6 +69,7 @@ export async function evaluateHypothesis(
       evaluation: evaluation || "",
       timestamp: new Date().toISOString(),
     },
+    score,
   };
 }
 

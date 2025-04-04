@@ -1,0 +1,1 @@
+ALTER TABLE "biograph"."hypotheses" ADD COLUMN "citations" text[];

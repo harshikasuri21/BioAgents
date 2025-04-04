@@ -291,13 +291,6 @@ export async function generateHypothesis(
       "dcterms:abstract": usedAbstracts,
     };
 
-    // am currently using oxigraph locally with the script, but here we would store it to DKG
-
-    await fs.writeFile(
-      `./sampleJsonLdsNew/hypothesis${randomId}.json`,
-      JSON.stringify(hypothesisJSONLD, null, 2)
-    );
-
     const chunks = await splitMarkdownForDiscord(hypothesis);
     const messageIds = [];
     for (const chunk of chunks) {

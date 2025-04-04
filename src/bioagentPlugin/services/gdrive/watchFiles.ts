@@ -1,15 +1,10 @@
 import { IAgentRuntime, logger } from "@elizaos/core";
 import { initDriveClient, FOLDERS } from "./client.js";
 import { drive_v3 } from "googleapis";
-import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import fs from "fs/promises";
-import { generateKaFromPdf } from "../../kaService/kaService.js";
 import DKG from "dkg.js";
-import { Anthropic } from "@anthropic-ai/sdk";
-import { evaluationPrompt } from "../../evaluators/evaluationPrompt.js";
-import { fromPath, fromBuffer } from "pdf2pic";
+import { fromBuffer } from "pdf2pic";
 import { pdf2PicOptions } from "./index.js";
 import { OpenAIImage } from "./extract/types.js";
 import { generateKa } from "./extract";
@@ -18,7 +13,6 @@ type Schema$File = drive_v3.Schema$File;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const DOWNLOAD_FOLDER = path.join(__dirname, "..", "..", "downloads");
 
 type DKGClient = typeof DKG | null;
 let DkgClient: DKGClient = null;
@@ -27,6 +21,7 @@ interface FileInfo {
   id: string;
   name: string;
   md5Checksum: string;
+  size: number;
 }
 
 async function downloadFile(
@@ -57,7 +52,7 @@ async function getFilesInfo(): Promise<FileInfo[]> {
   const drive = await initDriveClient();
   const response = await drive.files.list({
     q: `'${FOLDERS.MAIN_FOLDER}' in parents and mimeType='application/pdf' and trashed=false`,
-    fields: "files(id, name, md5Checksum)",
+    fields: "files(id, name, md5Checksum, size)", // https://developers.google.com/workspace/drive/api/reference/rest/v3/files#File
     orderBy: "name",
   });
 
@@ -69,9 +64,19 @@ async function getFilesInfo(): Promise<FileInfo[]> {
         id: string;
         name: string;
         md5Checksum: string;
-      } => f.id != null && f.name != null && f.md5Checksum != null
+        size: number;
+      } =>
+        f.id != null &&
+        f.name != null &&
+        f.md5Checksum != null &&
+        f.size != null
     )
-    .map((f) => ({ id: f.id, name: f.name, md5Checksum: f.md5Checksum }));
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      md5Checksum: f.md5Checksum,
+      size: f.size,
+    }));
 }
 
 export async function watchFolderChanges(runtime: IAgentRuntime) {
@@ -143,12 +148,7 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           } else {
             logger.info("Successfully stored JSON-LD to Oxigraph");
           }
-          await fs.writeFile(
-            path.join(DOWNLOAD_FOLDER, `${file.name}.ka.json`),
-            JSON.stringify(ka, null, 2)
-          );
 
-          let createAssetResult: { UAL: string } | undefined;
           try {
           } catch (error) {
             logger.error(
@@ -189,89 +189,4 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
       }
     },
   };
-}
-
-async function generateHypothesis(ka: any) {
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-  const prompt = `
-    You are a helpful assistant that generates a hypothesis for a given scientific paper.
-    The paper is:
-    ${JSON.stringify(ka, null, 2)}
-    
-    Please generate a hypothesis for the paper.
-    Keep it short and concise.
-    `;
-  const response = await anthropic.messages.create({
-    model: "claude-3-7-sonnet-20250219",
-    messages: [{ role: "user", content: prompt }],
-    system: prompt,
-    max_tokens: 1000,
-  });
-  return response.content[0].type === "text"
-    ? response.content[0].text
-    : "No text response";
-}
-
-async function evaluateHypothesis(hypothesis: string, pdfPath: string) {
-  const options = {
-    density: 100,
-    format: "png",
-    width: 595,
-    height: 842,
-  };
-  const convert = fromPath(pdfPath, options);
-  logger.info(`Converting ${pdfPath} to images`);
-
-  const storeHandler = await convert.bulk(-1, { responseType: "base64" });
-
-  const images = storeHandler
-    .filter((page) => page.base64)
-    .map((page) => ({
-      type: "image" as const,
-      source: {
-        type: "base64" as const,
-        media_type: "image/png" as const,
-        data: page.base64!,
-      },
-    }));
-
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-  const prompt = `
-${evaluationPrompt}
-
-Here is the hypothesis:
-<hypothesis>
-${hypothesis}
-</hypothesis>`;
-  const response = await anthropic.messages.create({
-    model: "claude-3-7-sonnet-20250219",
-    max_tokens: 11000,
-    messages: [
-      {
-        role: "user",
-        content: [
-          ...images,
-          {
-            type: "text" as const,
-            text: prompt,
-          },
-        ],
-      },
-    ],
-    thinking: {
-      type: "enabled",
-      budget_tokens: 10000,
-    },
-  });
-
-  const score =
-    response.content[1]?.type === "text"
-      ? response.content[1].text
-      : "No text response";
-
-  return score;
 }
