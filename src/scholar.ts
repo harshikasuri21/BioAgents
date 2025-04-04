@@ -2,12 +2,10 @@ import {
   logger,
   type Character,
   type IAgentRuntime,
-  type Project,
   type ProjectAgent,
 } from "@elizaos/core";
-import dotenv from "dotenv";
 import { dkgPlugin } from "./bioagentPlugin";
-dotenv.config({ path: "../../.env" });
+import "dotenv/config";
 
 /**
  * Represents the default character (Eliza) with her specific attributes and behaviors.
