@@ -29,7 +29,6 @@
     "@elizaos/plugin-openai": "1.0.0-beta.7",
     "@elizaos/plugin-sql": "1.0.0-beta.7",
     "@instructor-ai/instructor": "^1.7.0",
-    "@types/n3": "^1.24.2",
     "axios": "^1.8.1",
     "cheerio": "^1.0.0",
     "cli-progress": "^3.12.0",
@@ -52,6 +51,7 @@
     "@types/cli-progress": "^3.11.6",
     "@types/node": "^22.13.8",
     "@types/pg": "^8.11.11",
+    "@types/n3": "^1.24.2",
     "drizzle-kit": "^0.30.6",
     "prettier": "3.5.3",
     "tsup": "8.4.0"
