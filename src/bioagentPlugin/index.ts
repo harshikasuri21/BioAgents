@@ -13,4 +13,16 @@ export const dkgPlugin: Plugin = {
   providers: [],
   evaluators: [],
   services: [HypothesisService],
+  routes: [
+    {
+      path: "/helloworld",
+      type: "GET",
+      handler: async (_req: any, res: any) => {
+        // send a response
+        res.json({
+          message: "Hello World!",
+        });
+      },
+    },
+  ],
 };
