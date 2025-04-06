@@ -2,17 +2,34 @@ import { logger } from "@elizaos/core";
 
 interface ListFilesQueryStrategy {
   buildQuery(): Record<string, any>;
+  getStartPageTokenParams(): Record<string, any>;
+  getDriveType(): DriveType;
+  getDriveId(): string;
 }
 
-class MainFolderStrategy implements ListFilesQueryStrategy {
-  constructor(private mainFolderId: string) {}
+type DriveType = "shared_folder" | "shared_drive";
+
+class SharedDriveFolderStrategy implements ListFilesQueryStrategy {
+  constructor(private sharedDriveFolderId: string) {}
 
   buildQuery(): Record<string, any> {
     return {
-      q: `'${this.mainFolderId}' in parents and mimeType='application/pdf' and trashed=false`,
+      q: `'${this.sharedDriveFolderId}' in parents and mimeType='application/pdf' and trashed=false`,
       fields: "files(id, name, md5Checksum, size)",
       orderBy: "name",
     };
+  }
+
+  getStartPageTokenParams(): Record<string, any> {
+    return {};
+  }
+
+  getDriveType(): DriveType {
+    return "shared_folder";
+  }
+
+  getDriveId(): string {
+    return this.sharedDriveFolderId;
   }
 }
 
@@ -30,6 +47,21 @@ class SharedDriveStrategy implements ListFilesQueryStrategy {
       corpora: "drive",
     };
   }
+
+  getStartPageTokenParams(): Record<string, any> {
+    return {
+      driveId: this.sharedDriveId,
+      supportsAllDrives: true,
+    };
+  }
+
+  getDriveType(): DriveType {
+    return "shared_drive";
+  }
+
+  getDriveId(): string {
+    return this.sharedDriveId;
+  }
 }
 
 export class ListFilesQueryContext {
@@ -44,7 +76,7 @@ export class ListFilesQueryContext {
     } else if (sharedDriveId) {
       this.strategy = new SharedDriveStrategy(sharedDriveId);
     } else if (mainFolderId) {
-      this.strategy = new MainFolderStrategy(mainFolderId);
+      this.strategy = new SharedDriveFolderStrategy(mainFolderId);
     } else {
       logger.error(
         "Either GOOGLE_DRIVE_FOLDER_ID or SHARED_DRIVE_ID must be defined."
@@ -55,5 +87,17 @@ export class ListFilesQueryContext {
 
   buildQuery(): Record<string, any> {
     return this.strategy.buildQuery();
+  }
+
+  getStartPageTokenParams(): Record<string, any> {
+    return this.strategy.getStartPageTokenParams();
+  }
+
+  getDriveType(): DriveType {
+    return this.strategy.getDriveType();
+  }
+
+  getDriveId(): string {
+    return this.strategy.getDriveId();
   }
 }

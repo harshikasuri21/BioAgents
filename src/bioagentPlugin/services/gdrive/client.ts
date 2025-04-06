@@ -30,14 +30,22 @@ export async function initDriveClient(
 }
 
 export const FOLDERS = {
-  MAIN_FOLDER: process.env.GOOGLE_DRIVE_FOLDER_ID,
+  SHARED_DRIVE_FOLDER: process.env.GOOGLE_DRIVE_FOLDER_ID,
   SHARED_DRIVE_ID: process.env.SHARED_DRIVE_ID,
 };
 
 export function getListFilesQuery() {
   const context = new ListFilesQueryContext(
-    FOLDERS.MAIN_FOLDER,
+    FOLDERS.SHARED_DRIVE_FOLDER,
     FOLDERS.SHARED_DRIVE_ID
   );
   return context.buildQuery();
+}
+
+export function getStartPageTokenParams() {
+  const context = new ListFilesQueryContext(
+    FOLDERS.SHARED_DRIVE_FOLDER,
+    FOLDERS.SHARED_DRIVE_ID
+  );
+  return context.getStartPageTokenParams();
 }
