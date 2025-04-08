@@ -6,6 +6,7 @@ import {
   fileMetadataTable,
   driveSyncTable,
   hypothesesSummaryTable,
+  gdriveChannelsTable,
 } from "./schemas";
 
 const { Pool } = pkg;
@@ -19,6 +20,7 @@ export const db = drizzle(pool, {
     fileMetadata: fileMetadataTable,
     driveSync: driveSyncTable,
     hypothesesSummary: hypothesesSummaryTable,
+    gdriveChannels: gdriveChannelsTable,
   },
 });
 
