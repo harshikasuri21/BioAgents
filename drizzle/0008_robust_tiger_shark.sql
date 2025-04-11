@@ -1,0 +1,2 @@
+CREATE TYPE "public"."file_status" AS ENUM('pending', 'processed', 'failed');--> statement-breakpoint
+ALTER TABLE "biograph"."file_metadata" ADD COLUMN "status" "file_status" DEFAULT 'pending' NOT NULL;

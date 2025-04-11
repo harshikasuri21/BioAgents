@@ -156,10 +156,18 @@ async function processFile(
     return;
   }
 
-  logger.info(`Processing PDF file: ${file.name}`);
+  const fileExists = await runtime.db
+    .select()
+    .from(fileMetadataTable)
+    .where(eq(fileMetadataTable.hash, file.md5Checksum as string));
 
-  // Insert or update file in database
-  await runtime.db
+  if (fileExists.length > 0) {
+    logger.info(`File ${file.name} already exists, skipping`);
+    return;
+  }
+
+  // Insert or update file in database first
+  const result = await runtime.db
     .insert(fileMetadataTable)
     .values({
       id: file.id as string,
@@ -176,9 +184,32 @@ async function processFile(
         modifiedAt: new Date(),
         id: file.id as string,
       },
+    })
+    .returning();
+
+  logger.info(`Result: ${JSON.stringify(result)}`);
+
+  // Only create a task if a record was inserted or updated
+  if (result.length > 0) {
+    logger.info(`Adding task to queue: ${file.name}`);
+
+    await runtime.createTask({
+      name: "PROCESS_PDF",
+      description: "Convert PDF to RDF triples and save to Oxigraph",
+      tags: ["rdf", "graph", "process", "hypothesis"],
+      metadata: {
+        updateInterval: 3 * 60 * 1000,
+        updatedAt: Date.now(),
+        fileId: file.id as string,
+        fileName: file.name as string,
+        modifiedAt: new Date(),
+      },
     });
 
-  logger.info(`Saved/updated file metadata for ${file.name} (${file.id})`);
+    logger.info(`Saved/updated file metadata for ${file.name} (${file.id})`);
+  } else {
+    logger.info(`File ${file.name} hasn't changed, skipping task creation`);
+  }
 }
 
 /**
