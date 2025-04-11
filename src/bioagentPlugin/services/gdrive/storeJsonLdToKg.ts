@@ -2,6 +2,11 @@ import { Store, Quad } from "n3";
 import { JsonLdParser } from "jsonld-streaming-parser";
 import axios from "axios";
 import crypto from "crypto";
+import "dotenv/config";
+
+const ENV = process.env.ENV;
+const OXIGRAPH_URL =
+  ENV === "dev" ? "http://localhost:7878" : process.env.PROD_OXIGRAPH_HOST;
 
 /**
  * Recursively adds an @id field (with a random UUID) to all objects
@@ -93,15 +98,11 @@ export async function storeJsonLd(jsonLd: object): Promise<boolean> {
           .join("\n");
 
         // Send N-Triples to Oxigraph
-        const response = await axios.post(
-          "http://localhost:7878/store",
-          ntriples,
-          {
-            headers: {
-              "Content-Type": "application/n-quads",
-            },
-          }
-        );
+        const response = await axios.post(`${OXIGRAPH_URL}/store`, ntriples, {
+          headers: {
+            "Content-Type": "application/n-quads",
+          },
+        });
 
         if (response.status === 204) {
           console.log("Successfully stored JSON-LD in Oxigraph");
