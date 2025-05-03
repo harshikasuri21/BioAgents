@@ -38,6 +38,7 @@
     "form-data": "^4.0.2",
     "googleapis": "^146.0.0",
     "jsonld-streaming-parser": "^5.0.0",
+    "libxmljs": "^1.0.11",
     "n3": "^1.24.2",
     "openai": "^4.90.0",
     "pdf2pic": "^3.1.4",
@@ -49,9 +50,9 @@
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
+    "@types/n3": "^1.24.2",
     "@types/node": "^22.13.8",
     "@types/pg": "^8.11.11",
-    "@types/n3": "^1.24.2",
     "drizzle-kit": "^0.30.6",
     "prettier": "3.5.3",
     "tsup": "8.4.0"

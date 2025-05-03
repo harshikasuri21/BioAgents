@@ -17,7 +17,7 @@ import { createDKGMemoryTemplate } from "../templates.ts";
 // @ts-ignore
 import DKG from "dkg.js";
 import { DKGMemorySchema, isDKGMemoryContent } from "../types.ts";
-import { generateKaFromPdf } from "../services/kaService/kaService.ts";
+import { generateKaFromPdf } from "../services/kaService/v1/kaService.ts";
 import { writeFile } from "fs/promises";
 
 // Define a basic type for the DKG client

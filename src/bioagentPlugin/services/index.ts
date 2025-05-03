@@ -4,7 +4,7 @@ import { watchFolderChanges } from "./gdrive";
 import { sql, eq } from "drizzle-orm";
 import { fileMetadataTable, fileStatusEnum } from "src/db/schemas";
 import { downloadFile, initDriveClient, FileInfo } from "./gdrive";
-import { generateKaFromPdfBuffer } from "./kaService/kaService";
+import { generateKaFromPdfBuffer } from "./kaService/v1/kaService";
 import { storeJsonLd } from "./gdrive/storeJsonLdToKg";
 
 export class HypothesisService extends Service {
