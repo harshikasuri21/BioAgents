@@ -321,7 +321,6 @@ export async function generateKaFromPdfBuffer(
   const teiXml = await processFulltextDocument(pdfBuffer);
   const paperArray = await parseXml(teiXml);
   const { doi } = paperArray;
-  // @ts-ignore
   const ka = await jsonArrToKa(paperArray, doi);
   const cleanedKa = removeColonsRecursively(ka);
   const relatedDAOsString = await categorizeIntoDAOs(paperArray.abstract);
