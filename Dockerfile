@@ -1,4 +1,4 @@
-FROM node:23.3.0-slim AS base
+FROM node:20.11.0-slim AS base
 
 # Install pnpm and essential packages
 RUN npm install -g pnpm@9.15.4 && \
@@ -48,7 +48,7 @@ FROM base AS builder
 RUN pnpm build
 
 # Production stage
-FROM node:23.3.0-slim AS production
+FROM node:20.11.0-slim AS production
 WORKDIR /app
 
 RUN npm install -g pnpm@9.15.4 && \
