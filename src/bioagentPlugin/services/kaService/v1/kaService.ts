@@ -252,6 +252,24 @@ async function categorizeIntoDAOs(images: Image[]) {
     : undefined;
 }
 
+async function categorizeIntoDAOsString(abstract: string) {
+  const client = getClient();
+  const response = await client.messages.create({
+    model: "claude-3-7-sonnet-20250219",
+    system: categorizeIntoDAOsPrompt,
+    messages: [
+      {
+        role: "user",
+        content: abstract,
+      },
+    ],
+    max_tokens: 50,
+  });
+  return response.content[0].type === "text"
+    ? response.content[0].text
+    : undefined;
+}
+
 export async function generateKaFromPdf(pdfPath: string, dkgClient: DKGClient) {
   const options = {
     density: 100,
@@ -321,9 +339,10 @@ export async function generateKaFromPdfBuffer(
   const teiXml = await processFulltextDocument(pdfBuffer);
   const paperArray = await parseXml(teiXml);
   const { doi } = paperArray;
+  // @ts-ignore
   const ka = await jsonArrToKa(paperArray, doi);
   const cleanedKa = removeColonsRecursively(ka);
-  const relatedDAOsString = await categorizeIntoDAOs(paperArray.abstract);
+  const relatedDAOsString = await categorizeIntoDAOsString(paperArray.abstract);
 
   const daos = JSON.parse(relatedDAOsString);
 
