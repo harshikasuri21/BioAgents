@@ -25,7 +25,8 @@ RUN npm install -g pnpm@9.15.4 && \
     openssl \
     libssl-dev libsecret-1-dev \
     ghostscript \
-    graphicsmagick && \
+    graphicsmagick \
+    libxml2-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
