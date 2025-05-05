@@ -4,6 +4,8 @@ import { downloadPaperAndExtractDOI } from "./downloadPaper";
 import { paperExists } from "./sparqlQueries";
 import { logger } from "@elizaos/core";
 import { makeUnstructuredApiRequest } from "./unstructuredPartitioning";
+import { processFulltextDocument } from "../v2/grobidClient";
+import { parseXml } from "../v2/parseTeiXml";
 
 import { processJsonArray, process_paper, create_graph } from "./processPaper";
 import { getSummary } from "./vectorize";
@@ -46,7 +48,7 @@ interface GeneratedGraph {
 export async function jsonArrToKa(jsonArr: PaperArrayElement[], doi: string) {
   const client = getClient();
 
-  const paperArrayDict = await processJsonArray(jsonArr, client);
+  // const paperArrayDict = await processJsonArray(jsonArr, client);
 
   const [
     generatedBasicInfo,
@@ -55,7 +57,8 @@ export async function jsonArrToKa(jsonArr: PaperArrayElement[], doi: string) {
     generatedDoidSubgraph,
     generatedChebiSubgraph,
     generatedAtcSubgraph,
-  ] = await process_paper(client, paperArrayDict);
+    // @ts-ignore
+  ] = await process_paper(client, jsonArr);
 
   const generatedGraph = await create_graph(
     client,
@@ -249,6 +252,24 @@ async function categorizeIntoDAOs(images: Image[]) {
     : undefined;
 }
 
+async function categorizeIntoDAOsString(abstract: string) {
+  const client = getClient();
+  const response = await client.messages.create({
+    model: "claude-3-7-sonnet-20250219",
+    system: categorizeIntoDAOsPrompt,
+    messages: [
+      {
+        role: "user",
+        content: abstract,
+      },
+    ],
+    max_tokens: 50,
+  });
+  return response.content[0].type === "text"
+    ? response.content[0].text
+    : undefined;
+}
+
 export async function generateKaFromPdf(pdfPath: string, dkgClient: DKGClient) {
   const options = {
     density: 100,
@@ -315,39 +336,13 @@ export async function generateKaFromPdfBuffer(
   pdfBuffer: Buffer,
   dkgClient: DKGClient
 ) {
-  const options = {
-    density: 100,
-    format: "png",
-    width: 595,
-    height: 842,
-  };
-  const convert = fromBuffer(pdfBuffer, options);
-
-  const storeHandler = await convert.bulk(-1, { responseType: "base64" });
-
-  const imageMessages = storeHandler
-    .filter((page) => page.base64)
-    .map((page) => ({
-      type: "image" as const,
-      source: {
-        type: "base64" as const,
-        media_type: "image/png" as const,
-        data: page.base64!,
-      },
-    }));
-  logger.info(`Extracting DOI`);
-  const doi = await extractDOIFromPDF(imageMessages);
-  if (!doi) {
-    throw new Error("Failed to extract DOI");
-  }
-  const paperArray = await makeUnstructuredApiRequest(
-    pdfBuffer,
-    "paper.pdf",
-    unstructuredApiKey
-  );
+  const teiXml = await processFulltextDocument(pdfBuffer);
+  const paperArray = await parseXml(teiXml);
+  const { doi } = paperArray;
+  // @ts-ignore
   const ka = await jsonArrToKa(paperArray, doi);
   const cleanedKa = removeColonsRecursively(ka);
-  const relatedDAOsString = await categorizeIntoDAOs(imageMessages);
+  const relatedDAOsString = await categorizeIntoDAOsString(paperArray.abstract);
 
   const daos = JSON.parse(relatedDAOsString);
 

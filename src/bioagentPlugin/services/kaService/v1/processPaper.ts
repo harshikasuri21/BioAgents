@@ -263,7 +263,7 @@ export async function getGeneratedBasicInfoText(
   paper_dict: PaperDict
 ): Promise<string> {
   const spar_array = Array.from(
-    new Set([...paper_dict.introduction, ...paper_dict.abstract])
+    new Set([paper_dict.introduction, paper_dict.abstract])
   );
   try {
     const prompt_basic_info = get_prompt_basic_info(spar_array);
@@ -314,10 +314,10 @@ export async function getGoGeneratedSubgraphText(
   try {
     const go_array = Array.from(
       new Set([
-        ...paper_dict.introduction,
-        ...paper_dict.methods,
-        ...paper_dict.results,
-        ...paper_dict.discussion,
+        paper_dict.introduction,
+        paper_dict.methods,
+        paper_dict.results,
+        paper_dict.discussion,
       ])
     );
     const prompt_subgraph = get_prompt_go_subgraph(go_array);
@@ -359,10 +359,10 @@ export async function getDoidGeneratedSubgraphText(
   try {
     const doid_array = Array.from(
       new Set([
-        ...paper_dict.introduction,
-        ...paper_dict.abstract,
-        ...paper_dict.results,
-        ...paper_dict.discussion,
+        paper_dict.introduction,
+        paper_dict.abstract,
+        paper_dict.results,
+        paper_dict.discussion,
       ])
     );
     const prompt_subgraph = get_prompt_doid_subgraph(doid_array);
@@ -402,10 +402,10 @@ export async function getChebiGeneratedSubgraphText(
   try {
     const chebi_array = Array.from(
       new Set([
-        ...paper_dict.introduction,
-        ...paper_dict.abstract,
-        ...paper_dict.results,
-        ...paper_dict.discussion,
+        paper_dict.introduction,
+        paper_dict.abstract,
+        paper_dict.results,
+        paper_dict.discussion,
       ])
     );
     const prompt_subgraph = get_prompt_chebi_subgraph(chebi_array);
@@ -445,10 +445,10 @@ export async function getAtcGeneratedSubgraphText(
   try {
     const atc_array = Array.from(
       new Set([
-        ...paper_dict.introduction,
-        ...paper_dict.abstract,
-        ...paper_dict.results,
-        ...paper_dict.discussion,
+        paper_dict.introduction,
+        paper_dict.abstract,
+        paper_dict.results,
+        paper_dict.discussion,
       ])
     );
     const prompt_subgraph = get_prompt_atc_subgraph(atc_array);
