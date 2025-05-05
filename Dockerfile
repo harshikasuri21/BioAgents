@@ -59,6 +59,9 @@ RUN npm install -g pnpm@9.15.4 && \
     ffmpeg \
     ghostscript \
     graphicsmagick \
+    make \
+    g++ \
+    build-essential \
     libxml2-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
