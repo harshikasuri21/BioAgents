@@ -65,7 +65,7 @@ RUN npm install -g pnpm@9.15.4 && \
 
 # Copy package files and install dependencies
 COPY package.json ./
-RUN pnpm install && pnpm add uuid
+RUN pnpm install --verbose && pnpm add uuid
 
 # Copy built assets
 COPY --from=builder /app/dist ./dist
