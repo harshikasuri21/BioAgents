@@ -19,8 +19,8 @@ concurrency:
 env:
   BINARY_NAME: bioAgent
   BUN_VERSION: 1.2.4
-  NODE_VERSION: 23.3.0
-  PNPM_VERSION: 9
+  NODE_VERSION: 20.11.0
+  PNPM_VERSION: 9.15
 
 # Define global permissions (principle of least privilege)
 permissions:
