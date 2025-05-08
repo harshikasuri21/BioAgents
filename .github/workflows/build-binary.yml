@@ -1,0 +1,138 @@
+name: Build BioAgent Binary
+
+on:
+  push:
+    branches:
+      - main
+      - development
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch: # Allow manual triggering
+
+# Cancel in-progress runs on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Define global environment variables
+env:
+  BINARY_NAME: bioAgent
+  BUN_VERSION: 1.2.4
+  NODE_VERSION: 23.3.0
+  PNPM_VERSION: 9
+
+# Define global permissions (principle of least privilege)
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.os_name }}-${{ matrix.arch }}
+    # Define a matrix with OS and CPU architecture combinations
+    strategy:
+      fail-fast: false # Continue with other builds if one fails
+      matrix:
+        include:
+          - os: ubuntu-latest
+            os_name: linux
+            arch: x64
+          - os: ubuntu-latest
+            os_name: linux
+            arch: arm64
+          - os: macos-latest
+            os_name: darwin
+            arch: x64
+          - os: macos-latest
+            os_name: darwin
+            arch: arm64
+          - os: windows-latest
+            os_name: windows
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60 # Prevent runaway workflows
+
+    steps:
+      - name: Checkout repository
+        # Pin action with SHA for security
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Shallow clone for faster checkout
+
+      # Extract version from package.json early to use throughout the workflow
+      - name: Extract version
+        id: extract_version
+        shell: bash
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=${BINARY_NAME}_${{ matrix.os_name }}_${{ matrix.arch }}_${VERSION}" >> $GITHUB_ENV
+          echo "📦 Building version: ${VERSION} for ${{ matrix.os_name }}/${{ matrix.arch }}"
+
+      # Setup and cache pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      # Setup and cache Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      # Install dependencies with caching
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --no-frozen-lockfile
+
+      # Setup Bun with caching
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      # Create necessary directories
+      - name: Prepare directories
+        shell: bash
+        run: |
+          echo "🔧 Creating build directories..."
+          mkdir -p ./pkg_${{ matrix.os_name }}_${{ matrix.arch }}/libs/
+          mkdir -p ./binary-builder/pkg/binary/
+          mkdir -p ./release-assets
+
+      # Build binary with Bun
+      - name: Build binary with Bun
+        working-directory: .
+        shell: bash
+        run: |
+          echo "🔨 Building binary for ${{ matrix.os_name }}/${{ matrix.arch }}..."
+          bun build --compile ./src/index.ts \
+            --outfile=pkg_${{ matrix.os_name }}_${{ matrix.arch }}/${{ env.BINARY_NAME }} \
+            --external sharp \
+            --external onnxruntime-node \
+            --external @roamhq \
+            --external sqlite-vec
+          echo "✅ Binary built successfully"
+
+      # Copy binary to binary_builder pkg folder
+      - name: Copy binary to binary_builder
+        shell: bash
+        run: |
+          echo "📋 Copying binary to binary-builder..."
+          cp ./pkg_${{ matrix.os_name }}_${{ matrix.arch }}/${{ env.BINARY_NAME }} ./binary-builder/pkg/binary/
+          echo "✅ Binary copied successfully"
+
+      # Install external dependencies for the binary wrapper
+      - name: Install external dependencies
+        shell: bash
+        run: |
+          echo "📦 Installing external dependencies..."
+          cd binary-builder/pkg/
+          npm install
+          echo "✅ External dependencies installed successfully"
