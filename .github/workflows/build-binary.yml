@@ -20,7 +20,7 @@ env:
   BINARY_NAME: bioAgent
   BUN_VERSION: 1.2.4
   NODE_VERSION: 20.11.0
-  PNPM_VERSION: 9.15
+  PNPM_VERSION: 9.15.0
 
 # Define global permissions (principle of least privilege)
 permissions:
