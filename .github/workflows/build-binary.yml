@@ -38,6 +38,13 @@ jobs:
           LOWERCASE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "LOWERCASE_REPO=${LOWERCASE_REPO}" >> $GITHUB_ENV
 
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build binary
         run: ./dockerc --image docker://${REGISTRY}/${LOWERCASE_REPO}:main --output bioagents_bin
 
