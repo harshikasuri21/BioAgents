@@ -1,9 +1,9 @@
 name: Build BioAgent Binary
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
+  workflow_run:
+    workflows: ["Build and Push"]
+    types: [completed]
     branches: ["main"]
 
 permissions:
@@ -17,6 +17,7 @@ env:
 
 jobs:
   build-bioagent-binary:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -70,7 +71,7 @@ jobs:
           body: |
             ## BioAgents Release v${{ env.VERSION }}
 
-            This release contains the compiled binary for BioAgents.
+            This release contains the compiled binary for BioAgents. This is still an alpha release and may not work as expected.
 
             ### Installation
 
