@@ -3,8 +3,7 @@ name: Build BioAgent Binary
 on:
   push:
     branches:
-      - main
-      - development
+      - master
     paths-ignore:
       - "**.md"
       - "docs/**"
