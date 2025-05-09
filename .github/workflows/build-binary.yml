@@ -12,14 +12,21 @@ permissions:
 env:
   REGISTRY: ghcr.io
   REPO_NAME: ${{ github.repository }}
+  VERSION:
+  RELEASE_DATE:
 
 jobs:
   build-bioagent-binary:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write
+      packages: read
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download dockerc
         run: |
           curl -fLo dockerc https://github.com/NilsIrl/dockerc/releases/download/v0.3.2/dockerc_x86-64
@@ -31,12 +38,43 @@ jobs:
           LOWERCASE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "LOWERCASE_REPO=${LOWERCASE_REPO}" >> $GITHUB_ENV
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build binary
         run: ./dockerc --image docker://${REGISTRY}/${LOWERCASE_REPO}:main --output bioagents_bin
+
+      - name: Extract version
+        id: extract_version
+        run: |
+          # Extract from package.json
+          VERSION=$(jq -r '.version' package.json)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          # Generate release date for naming
+          RELEASE_DATE=$(date '+%Y%m%d')
+          echo "RELEASE_DATE=${RELEASE_DATE}" >> $GITHUB_ENV
+
+      - name: Make binary executable
+        run: chmod +x bioagents_bin
+
+      # Create a release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: BioAgents v${{ env.VERSION }} (${{ env.RELEASE_DATE }})
+          body: |
+            ## BioAgents Release v${{ env.VERSION }}
+
+            This release contains the compiled binary for BioAgents.
+
+            ### Installation
+
+            Download the binary, make it executable, and run it:
+            ```bash
+            chmod +x bioagents_bin
+            ./bioagents_bin
+            ```
+          files: |
+            bioagents_bin
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
