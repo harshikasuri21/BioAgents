@@ -26,4 +26,4 @@ jobs:
           curl -fLo dockerc https://github.com/NilsIrl/dockerc/releases/download/v0.3.2/dockerc_x86-64
           chmod +x ./dockerc
       - name: Build binary
-        run: ./dockerc --image ghcr.io/${{ github.repository }}:main --output bioagents_bin
+        run: ./dockerc --image docker://ghcr.io/${{ github.repository }}:main --output bioagents_bin
