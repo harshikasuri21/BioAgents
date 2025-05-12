@@ -3,7 +3,7 @@ import { logger } from "@elizaos/core";
 import { dkgInsert } from "./actions/dkgInsert";
 import { HypothesisService } from "./services";
 import { initDriveSync } from "./helper";
-import { gdriveManualSync, gdriveWebhook, health } from "./routes";
+import { gdriveManualSync, gdriveWebhook, health, totalAgents } from "./routes";
 
 export const dkgPlugin: Plugin = {
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
@@ -20,7 +20,7 @@ export const dkgPlugin: Plugin = {
   providers: [],
   evaluators: [],
   services: [HypothesisService],
-  routes: [health, gdriveWebhook, gdriveManualSync],
+  routes: [health, gdriveWebhook, gdriveManualSync, totalAgents],
 };
 
 export * as actions from "./actions";
