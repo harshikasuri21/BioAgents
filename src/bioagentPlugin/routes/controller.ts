@@ -26,6 +26,9 @@ type DriveFile = drive_v3.Schema$File;
 export async function syncGoogleDriveChanges(
   runtime: IAgentRuntime
 ): Promise<DriveChangeResponse> {
+  if (process.env.USE_GOOGLE_DRIVE === "false") {
+    return;
+  }
   // --- Setup and initialization ---
   const driveSync = await fetchDriveSyncRecord(runtime);
   const { id: driveId, startPageToken, driveType } = driveSync;

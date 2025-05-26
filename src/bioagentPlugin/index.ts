@@ -9,9 +9,11 @@ export const dkgPlugin: Plugin = {
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
     logger.info("Initializing dkg plugin");
     logger.info(config);
-    setTimeout(async () => {
-      await initDriveSync(runtime);
-    }, 20000); // prevent undefined error, the db property is not available immediately
+    if (process.env.USE_GOOGLE_DRIVE === "true") {
+      setTimeout(async () => {
+        await initDriveSync(runtime);
+      }, 20000); // prevent undefined error, the db property is not available immediately
+    }
   },
   name: "dkg",
   description:
