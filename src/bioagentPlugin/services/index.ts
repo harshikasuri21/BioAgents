@@ -29,7 +29,12 @@ export class HypothesisService extends Service {
         const fileInfo: FileInfo = {
           id: fileId as string,
         };
-        const drive = await initDriveClient();
+        
+        let drive = null;
+        if (process.env.USE_GOOGLE_DRIVE === "true") {
+          drive = await initDriveClient();
+        }
+        
         logger.info("Downloading file");
         const fileBuffer = await downloadFile(drive, fileInfo);
         logger.info("Generating KA");
@@ -115,7 +120,7 @@ export class HypothesisService extends Service {
       3 * 60 * 1000
     );
 
-    // await watchFolderChanges(runtime);
+    await watchFolderChanges(runtime);
 
     process.on("SIGINT", async () => {
       // stopHypGenEvalLoop(interval);

@@ -18,7 +18,19 @@ docker run --rm -v $PWD/oxigraph:/data -p 7878:7878 ghcr.io/oxigraph/oxigraph se
 
 Now your local oxigraph instance is ready to load the processed scientific papers from the `sampleJsonLds` folder. More info [here](src/bioagentPlugin/services/gdrive/extract/README.md).
 
-3. Load JSON-LD data into Oxigraph/OriginTrail's DKG:
+3. Start the Grobid server for processing scientific publication PDFs 
+
+Lightweight Grobid (recommended for local setup)
+```bash
+docker run --rm --init --ulimit core=0 -p 8070:8070 lfoppiano/grobid:0.8.2
+```
+
+Full Grobid (recommended for production setup)
+```bash
+docker run --rm --gpus all --init --ulimit core=0 -p 8070:8070 grobid/grobid:0.8.2
+```
+
+4. Load JSON-LD data into Oxigraph/OriginTrail's DKG:
 
 ```bash
 pnpm run script scripts/jsonldToTriple.ts
@@ -26,7 +38,7 @@ pnpm run script scripts/jsonldToTriple.ts
 
 Now your oxigraph has the triples loaded!
 
-4. (Optional) Start PostgreSQL with vector support:
+5. (Optional) Start PostgreSQL with vector support:
 
 ```bash
 docker run --name BioAgents-db -e POSTGRES_PASSWORD=123 -p 5432:5432 -d ankane/pgvector
@@ -34,12 +46,18 @@ docker run --name BioAgents-db -e POSTGRES_PASSWORD=123 -p 5432:5432 -d ankane/p
 
 Alternatively, you can use pglite instead of PostgreSQL (Eliza will give you that option when starting for the 1st time)
 
-5. Start the development server:
+6. Run the DB migrations
+
+```bash
+pnpm db:migrate
+```
+
+7. Start the development server:
 
 ```bash
 pnpm run dev
 ```
 
-6. Enable the hypothesis generation service:
+8. Enable the hypothesis generation service:
 
-- Uncomment line 26 and 85 in [index.ts](src/bioagentPlugin/services/index.ts)
+- Uncomment line 19, 123 and 126 in [index.ts](src/bioagentPlugin/services/index.ts)

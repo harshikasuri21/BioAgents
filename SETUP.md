@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 23.3.0 or later
+- Node.js 20
 - pnpm 9.15.4
 - Git
 - Python 3
