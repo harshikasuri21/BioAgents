@@ -118,7 +118,14 @@ async function getFilesInfo(): Promise<FileInfo[]> {
 }
 
 export async function watchFolderChanges(runtime: IAgentRuntime) {
-  logger.info(`Watching ${process.env.USE_GOOGLE_DRIVE === "true" ? "Google Drive" : `local folder: ${process.env.PAPER_FOLDER}`} for changes`);
+  logger.info(
+    `Watching ${
+      process.env.USE_GOOGLE_DRIVE === "true"
+        ? "Google Drive"
+        : `local folder: ${process.env.PAPER_FOLDER}`
+    } for changes`
+  );
+  
   DkgClient = new DKG({
     environment: runtime.getSetting("DKG_ENVIRONMENT"),
     endpoint: runtime.getSetting("DKG_HOSTNAME"),
@@ -133,17 +140,19 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     contentType: "all",
     nodeApiVersion: "/v1",
   });
+  
   let knownHashes = new Set<string>();
-  let processedFilesId = new Set<string>();
+  
+  // Load existing processed file hashes from database
   let response = await db
-    .select({ hash: fileMetadataTable.hash, id: fileMetadataTable.id })
+    .select({ hash: fileMetadataTable.hash })
     .from(fileMetadataTable);
   for (const file of response) {
     knownHashes.add(file.hash);
-    processedFilesId.add(file.id);
   }
-  
-  const drive = process.env.USE_GOOGLE_DRIVE === "true" ? await initDriveClient() : null;
+
+  const drive =
+    process.env.USE_GOOGLE_DRIVE === "true" ? await initDriveClient() : null;
   let intervalId: NodeJS.Timeout | null = null;
   let isRunning = true;
 
@@ -152,7 +161,8 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     const pdfBuffer = await downloadFile(drive, file);
     logger.info(`Successfully downloaded ${file.name}`);
 
-    processedFilesId.add(file.id);
+    // Add hash to known hashes immediately to prevent duplicate processing
+    knownHashes.add(file.md5Checksum!);
 
     const converter = fromBuffer(pdfBuffer, pdf2PicOptions);
     const storeHandler = await converter.bulk(-1, {
@@ -173,26 +183,30 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
       return;
     } else {
       logger.info("Successfully stored JSON-LD to Oxigraph");
-      
+
+
       // Store file metadata in database after successful processing
-      // @ts-ignore
-      await db.insert(fileMetadataTable).values({
-        id: file.id as string,
-        hash: file.md5Checksum as string,
-        fileName: file.name as string,
-        fileSize: Number(file.size),
-        status: "processed",
-      }).onConflictDoUpdate({
-        target: fileMetadataTable.hash,
-        set: {
-          fileName: file.name as string,
-          // @ts-ignore
-          fileSize: Number(file.size),
-          modifiedAt: new Date(),
+      await db
+        .insert(fileMetadataTable)
+         // @ts-ignore
+        .values({
           id: file.id as string,
+          hash: file.md5Checksum as string,
+          fileName: file.name as string,
+          fileSize: Number(file.size),
           status: "processed",
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: fileMetadataTable.hash,
+          set: {
+            fileName: file.name as string,
+            // @ts-ignore
+            fileSize: Number(file.size),
+            modifiedAt: new Date(),
+            id: file.id as string,
+            status: "processed",
+          },
+        });
     }
 
     try {
@@ -217,13 +231,13 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
   const checkForChanges = async () => {
     if (!isRunning) return;
 
+    console.log("Checking for changes");
+
     try {
       const files = await getFilesInfo();
-      const currentHashes = new Set(files.map((f) => f.md5Checksum));
 
-      const newFiles = files.filter(
-        (f) => !knownHashes.has(f.md5Checksum) && !processedFilesId.has(f.id)
-      );
+      // Only filter by hash - if we haven't seen this content before, process it
+      const newFiles = files.filter((f) => !knownHashes.has(f.md5Checksum!));
 
       if (newFiles.length > 0) {
         logger.info(
@@ -235,8 +249,6 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           await processFile(file);
         }
       }
-
-      knownHashes = currentHashes;
     } catch (error) {
       logger.error("Error checking files:", error.stack);
     }
