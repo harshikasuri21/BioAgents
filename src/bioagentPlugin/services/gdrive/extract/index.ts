@@ -13,6 +13,17 @@ import {
   getDoiFromTitle,
   getReferencesFromDoi,
 } from "../../../science-api-helper";
+import {
+  searchGo,
+  searchDoid,
+  searchChebi,
+  searchAtc,
+  searchMondo,
+  searchEco,
+  searchPw,
+  searchMesh,
+} from "../../kaService/v1/biologyApi";
+import { Anthropic } from "@anthropic-ai/sdk";
 
 const __dirname = path.resolve();
 
@@ -61,7 +72,6 @@ async function extractOntologies(images: OpenAIImage[]) {
         content: [...images],
       },
     ],
-    // TODO: this is incorrect, 'ontologies' doesn't belong to any ontology
     response_model: { schema: OntologiesSchema, name: "Ontologies" },
     max_retries: 3,
   });
@@ -69,8 +79,253 @@ async function extractOntologies(images: OpenAIImage[]) {
     `[extractOntologies] Ontologies extraction completed successfully`
   );
 
-  // TODO: check if the ontologies match to real world examples, consider using a model with search
-  return ontologies;
+  // Validate and update ontology terms with real world IDs
+  const validatedOntologies = await validateOntologyTerms(ontologies);
+  console.log(`[extractOntologies] Ontology validation completed`);
+
+  return validatedOntologies;
+}
+
+/**
+ * Validates each ontology term by checking it against real ontology databases
+ * and updates the @id field with the correct ontology ID
+ */
+async function validateOntologyTerms(ontologies: any) {
+  if (
+    !ontologies["schema:about"] ||
+    !Array.isArray(ontologies["schema:about"])
+  ) {
+    console.log("[validateOntologyTerms] No ontology terms to validate");
+    return ontologies;
+  }
+
+  const anthropicClient = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY, // Ensure ANTHROPIC_API_KEY is set
+  });
+
+  const validatedTerms = [];
+  const totalTerms = ontologies["schema:about"].length;
+  let validatedCount = 0;
+  let updatedCount = 0;
+
+  console.log(
+    `[validateOntologyTerms] Validating ${totalTerms} ontology terms`
+  );
+
+  for (const term of ontologies["schema:about"]) {
+    const termName = term["dcterms:name"]; // Name used for searching
+    const originalId = term["@id"]; // Expected to be a CURIE like "GO:0005829"
+    let validatedId = originalId; // Default to original if not processed or error
+    let wasUpdated = false;
+
+    try {
+      if (originalId.startsWith("GO:") || originalId.startsWith("go:")) {
+        console.log(`[validateOntologyTerms] Validating GO term: ${termName}`);
+        const goResult = await searchGo(termName, anthropicClient); // Returns GO_XXXXXXX or "None"
+        if (goResult !== "None") {
+          const fullUrl = `http://purl.obolibrary.org/obo/${goResult}`;
+          validatedId = goResult; // Use short form as @id
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (
+        originalId.startsWith("DOID:") ||
+        originalId.startsWith("doid:")
+      ) {
+        console.log(
+          `[validateOntologyTerms] Validating DOID term: ${termName}`
+        );
+        const doidResult = await searchDoid(termName, anthropicClient); // Returns DOID_XXXXXXX or "None"
+        if (doidResult !== "None") {
+          const fullUrl = `http://purl.obolibrary.org/obo/${doidResult}`;
+          validatedId = doidResult; // Use short form as @id
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (
+        originalId.startsWith("CHEBI:") ||
+        originalId.startsWith("chebi:")
+      ) {
+        console.log(
+          `[validateOntologyTerms] Validating CHEBI term: ${termName}`
+        );
+        const chebiResult = await searchChebi(termName, anthropicClient); // Returns CHEBI_XXXXXXX or "None"
+        if (chebiResult !== "None") {
+          const fullUrl = `http://purl.obolibrary.org/obo/${chebiResult}`;
+          validatedId = chebiResult; // Use short form as @id
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (
+        originalId.startsWith("ATC:") ||
+        originalId.startsWith("atc:")
+      ) {
+        console.log(`[validateOntologyTerms] Validating ATC term: ${termName}`);
+        const atcResult = await searchAtc(termName, anthropicClient); // Returns ATC code e.g., A14AA04 or "None"
+        if (atcResult !== "None") {
+          const fullUrl = `http://purl.bioontology.org/ontology/ATC/${atcResult}`;
+          validatedId = `ATC_${atcResult}`; // Use ATC_ prefix for consistency
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (
+        originalId.startsWith("MONDO:") ||
+        originalId.startsWith("mondo:")
+      ) {
+        console.log(
+          `[validateOntologyTerms] Validating MONDO term: ${termName}`
+        );
+        const mondoResult = await searchMondo(termName, anthropicClient); // Returns MONDO_XXXXXXX or "None"
+        if (mondoResult !== "None") {
+          const fullUrl = `http://purl.obolibrary.org/obo/${mondoResult}`;
+          validatedId = mondoResult; // Use short form as @id
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (
+        originalId.startsWith("ECO:") ||
+        originalId.startsWith("eco:")
+      ) {
+        console.log(`[validateOntologyTerms] Validating ECO term: ${termName}`);
+        const ecoResult = await searchEco(termName, anthropicClient); // Returns ECO_XXXXXXX or "None"
+        if (ecoResult !== "None") {
+          const fullUrl = `http://purl.obolibrary.org/obo/${ecoResult}`;
+          validatedId = ecoResult; // Use short form as @id
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (originalId.startsWith("PW:") || originalId.startsWith("pw:")) {
+        // Assuming CURIE for Pathway Ontology is PW:XXXXXXX
+        console.log(
+          `[validateOntologyTerms] Validating Pathway Ontology (PW) term: ${termName}`
+        );
+        const pwResult = await searchPw(termName, anthropicClient); // Returns PW_XXXXXXX or "None"
+        if (pwResult !== "None") {
+          const fullUrl = `http://purl.obolibrary.org/obo/${pwResult}`;
+          validatedId = pwResult; // Use short form as @id
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else if (
+        originalId.startsWith("MESH:") ||
+        originalId.startsWith("mesh:")
+      ) {
+        console.log(
+          `[validateOntologyTerms] Validating MeSH term: ${termName}`
+        );
+        const meshResult = await searchMesh(termName, anthropicClient); // Returns MeSH ID e.g., D008881 or "None"
+        if (meshResult !== "None") {
+          const fullUrl = `http://purl.bioontology.org/ontology/MESH/${meshResult}`;
+          validatedId = `MESH_${meshResult}`; // Use MESH_ prefix for consistency
+          if (validatedId !== originalId) {
+            wasUpdated = true;
+            updatedCount++;
+          }
+          validatedCount++;
+          
+          // Add schema:url field
+          term["schema:url"] = fullUrl;
+        }
+      } else {
+        console.log(
+          `[validateOntologyTerms] Unknown or unhandled ontology type for ID: ${originalId} (term: ${termName})`
+        );
+        // If it's an unknown type, we still count it as "validated" by keeping the original.
+        // Or, you might choose not to increment validatedCount here if these should be errors.
+        validatedCount++;
+      }
+
+      validatedTerms.push({
+        ...term,
+        "@id": validatedId, // Update with the new full URI
+      });
+
+      if (wasUpdated && validatedId !== originalId) {
+        // Check validatedId !== originalId again because wasUpdated might be true even if strings are same due to normalization logic
+        console.log(
+          `[validateOntologyTerms] ✅ Updated ${termName}: ${originalId} → ${validatedId}`
+        );
+      } else if (validatedId !== originalId && validatedId !== "None") {
+        // If it was not explicitly "updated" by finding a different ID, but a valid ID was formed
+        console.log(
+          `[validateOntologyTerms] ✅ Confirmed/Formatted ${termName}: ${originalId} → ${validatedId}`
+        );
+      } else {
+        console.log(
+          `[validateOntologyTerms] ✅ Retained ${termName}: ${originalId}`
+        );
+      }
+    } catch (error) {
+      console.log(
+        `[validateOntologyTerms] ❌ Error validating ${termName} (ID: ${originalId}):`,
+        error
+      );
+      // Keep original term on error
+      validatedTerms.push(term);
+      // Optionally, you might not want to increment validatedCount here or handle errors differently
+    }
+  }
+
+  console.log(`[validateOntologyTerms] Validation complete:`);
+  console.log(`[validateOntologyTerms] - Total terms processed: ${totalTerms}`);
+  console.log(
+    `[validateOntologyTerms] - Terms for which a validation attempt was made (found or not): ${validatedCount}`
+  );
+  console.log(
+    `[validateOntologyTerms] - Terms updated with new/formatted IDs: ${updatedCount}`
+  );
+  if (totalTerms > 0) {
+    console.log(
+      `[validateOntologyTerms] - Validation success rate (based on attempts): ${((validatedCount / totalTerms) * 100).toFixed(1)}%`
+    );
+  }
+
+  return {
+    ...ontologies,
+    "schema:about": validatedTerms,
+  };
 }
 
 const CitationsSchema = z.object({

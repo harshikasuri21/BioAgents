@@ -146,18 +146,17 @@ export const OntologyTermSchema = z.object({
   "@id": z
     .string()
     .describe(
-      "IRI of the ontology term (e.g., http://purl.obolibrary.org/obo/GO_0070765 for 'gamma secretase activity')."
+      "Short form of the ontology term (e.g., 'MONDO_0004975', 'GO_0070765')."
     ),
   "dcterms:name": z
     .string()
     .describe(
       "Human-readable label of the ontology term (e.g., 'gamma secretase activity')."
     ),
-  "dcterms:title": z
+  "schema:url": z
     .string()
-    .optional()
     .describe(
-      "Title of the ontology term, typically used for disease or chemical entities."
+      "Full URL path to the ontology term (e.g., 'http://purl.obolibrary.org/obo/GO_0070765')."
     ),
   "dcterms:description": z
     .string()
