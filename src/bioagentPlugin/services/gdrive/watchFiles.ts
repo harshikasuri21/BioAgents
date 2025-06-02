@@ -234,6 +234,29 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
         error.message
       );
 
+      // Store file metadata in database after unsuccessful processing
+      await db
+        .insert(fileMetadataTable)
+        // @ts-ignore
+        .values({
+          id: file.id as string,
+          hash: file.md5Checksum as string,
+          fileName: file.name as string,
+          fileSize: Number(file.size),
+          status: "failed",
+        })
+        .onConflictDoUpdate({
+          target: fileMetadataTable.hash,
+          set: {
+            fileName: file.name as string,
+            // @ts-ignore
+            fileSize: Number(file.size),
+            modifiedAt: new Date(),
+            id: file.id as string,
+            status: "failed",
+          },
+        });
+
       if (error.stack) {
         logger.error("Stack trace:", error.stack);
       }
