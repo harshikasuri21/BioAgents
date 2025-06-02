@@ -120,7 +120,7 @@ const SectionSchema = z.object({
 });
 
 // citation schema
-const CitationSchema = z.object({
+export const CitationSchema = z.object({
   "@id": z
     .string()
     .describe(

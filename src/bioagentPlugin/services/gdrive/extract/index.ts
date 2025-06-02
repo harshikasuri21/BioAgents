@@ -1,9 +1,18 @@
 import Config from "./config";
 import path from "path";
-import { PaperSchema, OntologiesSchema } from "./z";
-import { ontologiesExtractionPrompt, extractionPrompt } from "./prompts";
+import { PaperSchema, OntologiesSchema, CitationSchema } from "./z";
+import {
+  ontologiesExtractionPrompt,
+  extractionPrompt,
+  citationsExtractionPrompt,
+} from "./prompts";
+import { z } from "zod";
 import { OpenAIImage } from "./types";
 import { categorizeIntoDAOsPrompt } from "../../kaService/v1/llmPrompt";
+import {
+  getDoiFromTitle,
+  getReferencesFromDoi,
+} from "../../../science-api-helper";
 
 const __dirname = path.resolve();
 
@@ -64,6 +73,35 @@ async function extractOntologies(images: OpenAIImage[]) {
   return ontologies;
 }
 
+const CitationsSchema = z.object({
+  "cito:cites": z.array(CitationSchema),
+});
+
+async function extractCitations(images: OpenAIImage[]) {
+  console.log(
+    `[extractCitations] Starting citations extraction with ${images.length} images (2nd half of the paper)`
+  );
+  const client = Config.instructorOai;
+
+  const { _meta, ...citations } = await client.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: citationsExtractionPrompt,
+      },
+      {
+        role: "user",
+        content: [...images],
+      },
+    ],
+    response_model: { schema: CitationsSchema, name: "Citations" },
+    max_retries: 3,
+  });
+  console.log(`[extractCitations] Citations extraction completed successfully`);
+  return citations;
+}
+
 export async function categorizeIntoDAOsString(abstract: string) {
   console.log(`[categorizeIntoDAOsString] Abstract: ${abstract}`);
 
@@ -90,12 +128,84 @@ export async function generateKa(images: OpenAIImage[]) {
   console.log(
     `[generateKa] Starting knowledge extraction with ${images.length} images`
   );
+  // Get 2nd half of paper for citations extraction
+  const secondHalf = images.slice(Math.floor(images.length / 2));
+
   const res = await Promise.all([
     extractPaper(images),
     extractOntologies(images),
+    extractCitations(secondHalf),
   ]);
   console.log(`[generateKa] All extractions completed, combining results`);
-  res[0]["ontologies"] = res[1]["ontologies"];
+  res[0]["schema:about"] = res[1]["schema:about"];
+
+  // Get DOI from science APIs and compare with LLM extracted DOI
+  const paperTitle = res[0]["dcterms:title"];
+  const llmExtractedDoi = res[0]["@id"];
+  console.log(`[generateKa] LLM extracted DOI: ${llmExtractedDoi}`);
+
+  try {
+    const scienceApiDoi = await getDoiFromTitle(paperTitle, Config.email);
+    if (scienceApiDoi) {
+      console.log(`[generateKa] Science API found DOI: ${scienceApiDoi}`);
+      if (llmExtractedDoi === scienceApiDoi) {
+        console.log(`[generateKa] ✅ LLM correctly extracted DOI`);
+      } else {
+        console.log(
+          `[generateKa] ❌ LLM DOI differs from Science API DOI, using Science API DOI`
+        );
+        res[0]["@id"] = scienceApiDoi;
+      }
+    } else {
+      console.log(
+        `[generateKa] ⚠️ Science API could not find DOI, keeping LLM extracted DOI`
+      );
+    }
+  } catch (error) {
+    console.log(`[generateKa] Error getting DOI from science APIs:`, error);
+  }
+
+  // Log LLM extracted citations count
+  const llmCitations = res[2]["cito:cites"] || [];
+  console.log(`[generateKa] LLM extracted ${llmCitations.length} citations`);
+
+  // Get additional citations from science APIs if we have a DOI
+  let scienceApiCitations: any[] = [];
+  const finalDoi = res[0]["@id"];
+  if (finalDoi && finalDoi.includes("doi.org/")) {
+    try {
+      const doiPart = finalDoi.replace("https://doi.org/", "");
+      scienceApiCitations = await getReferencesFromDoi(doiPart, Config.email);
+      console.log(
+        `[generateKa] Science APIs found ${scienceApiCitations.length} citations`
+      );
+    } catch (error) {
+      console.log(
+        `[generateKa] Error getting citations from science APIs:`,
+        error
+      );
+    }
+  }
+
+  // Deduplicate and merge citations
+  const allCitations = [...llmCitations];
+  const existingDoiSet = new Set(llmCitations.map((c: any) => c["@id"]));
+
+  let newCitationsAdded = 0;
+  for (const apiCitation of scienceApiCitations) {
+    if (!existingDoiSet.has(apiCitation["@id"])) {
+      allCitations.push(apiCitation);
+      existingDoiSet.add(apiCitation["@id"]);
+      newCitationsAdded++;
+    }
+  }
+
+  console.log(
+    `[generateKa] Added ${newCitationsAdded} new citations from science APIs`
+  );
+  console.log(`[generateKa] Total citations: ${allCitations.length}`);
+
+  res[0]["cito:cites"] = allCitations;
   console.log(`[generateKa] Knowledge extraction successfully completed`);
 
   const relatedDAOsString = await categorizeIntoDAOsString(

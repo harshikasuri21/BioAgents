@@ -148,5 +148,49 @@ Include terms from these ontologies (3-5 terms from each where relevant):
 ]
 \`\`\`
 
-Provide a minimum of 25-30 diverse, relevant ontology terms that would appear in the "cito:discusses" section of my scientific paper. Ensure ALL terms are genuine entries that exist in their respective ontologies and are directly related to my specific research topic.`;
+Provide a minimum of 25-30 diverse, relevant ontology terms that would appear in the "schema:about" section of my scientific paper. Ensure ALL terms are genuine entries that exist in their respective ontologies and are directly related to my specific research topic.`;
 // TODO: perhaps replace schema:about with cito:discusses
+
+export const citationsExtractionPrompt = `# Citation Extraction Prompt
+
+You are a specialized assistant that extracts citations and references from scientific papers. Focus on the References/Bibliography section, typically found at the end of papers.
+
+## **Output Format**
+
+Return exactly one JSON object with this structure:
+
+\`\`\`json
+{
+  "cito:cites": [
+    {
+      "@id": "https://doi.org/10.1016/j.cell.2005.05.012",
+      "@type": "bibo:AcademicArticle",
+      "dcterms:title": "Title of the cited work",
+      "bibo:doi": "10.1016/j.cell.2005.05.012"
+    }
+  ]
+}
+\`\`\`
+
+## **Requirements**
+
+1. **Extract ALL citations** from the reference list/bibliography section
+2. **For each citation:**
+   - **@id**: Use DOI URL if available (https://doi.org/10.xxxx), otherwise create unique identifier
+   - **@type**: Usually "bibo:AcademicArticle" or "schema:ScholarlyArticle"
+   - **dcterms:title**: Exact title of the cited work
+   - **bibo:doi**: DOI string without https://doi.org/ prefix (optional if DOI not available)
+
+3. **Quality Guidelines:**
+   - Extract titles exactly as they appear
+   - Include DOI when clearly visible in reference format
+   - Focus on academic articles, books, and formal publications
+   - Skip informal citations or incomplete references
+   - Ensure each citation has at minimum @id and dcterms:title
+
+4. **Output Requirements:**
+   - Return only the JSON object
+   - No additional commentary or markdown
+   - Must be valid JSON that matches the schema above
+
+**Your Task**: Extract all citations from the reference section and format them according to the schema above.`;
