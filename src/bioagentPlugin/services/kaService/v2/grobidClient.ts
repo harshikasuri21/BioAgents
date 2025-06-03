@@ -31,7 +31,7 @@ export async function processFulltextDocument(file: Buffer) {
     // GROBID can spit out TEI up to several MB; disable the limits
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
-    timeout: 120_000, // ms – tune to your latency
+    timeout: 300_000, // ms – tune to your latency
   });
 
   const end = new Date();

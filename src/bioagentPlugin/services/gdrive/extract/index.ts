@@ -27,13 +27,22 @@ import { Anthropic } from "@anthropic-ai/sdk";
 
 const __dirname = path.resolve();
 
-async function extractPaper(images: OpenAIImage[]) {
-  console.log(
-    `[extractPaper] Starting paper extraction with ${images.length} images`
-  );
+async function extractPaper(paperArray: any) {
+  console.log(`[extractPaper] Starting paper extraction from TEI XML data`);
   const client = Config.instructorOai;
 
-  // TODO: aside of images we could get some data from the internet or OpenAlex, like citations
+  // Create text content from paper sections
+  const textContent = [
+    paperArray.doi,
+    paperArray.title,
+    paperArray.abstract,
+    paperArray.introduction,
+    paperArray.methods,
+    paperArray.results,
+    paperArray.discussion,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const { _meta, ...paper } = await client.chat.completions.create({
     model: "gpt-4o",
@@ -44,7 +53,7 @@ async function extractPaper(images: OpenAIImage[]) {
       },
       {
         role: "user",
-        content: [...images],
+        content: textContent,
       },
     ],
     response_model: { schema: PaperSchema, name: "Paper" },
@@ -54,11 +63,23 @@ async function extractPaper(images: OpenAIImage[]) {
   return paper;
 }
 
-async function extractOntologies(images: OpenAIImage[]) {
+async function extractOntologies(paperArray: any) {
   console.log(
-    `[extractOntologies] Starting ontologies extraction with ${images.length} images`
+    `[extractOntologies] Starting ontologies extraction from TEI XML data`
   );
   const client = Config.instructorOai;
+
+  // Create text content from paper sections for ontology extraction
+  const textContent = [
+    paperArray.title,
+    paperArray.abstract,
+    paperArray.introduction,
+    paperArray.methods,
+    paperArray.results,
+    paperArray.discussion,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const { _meta, ...ontologies } = await client.chat.completions.create({
     model: "gpt-4o",
@@ -69,7 +90,7 @@ async function extractOntologies(images: OpenAIImage[]) {
       },
       {
         role: "user",
-        content: [...images],
+        content: textContent,
       },
     ],
     response_model: { schema: OntologiesSchema, name: "Ontologies" },
@@ -130,7 +151,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -150,7 +171,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -170,7 +191,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -188,7 +209,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -208,7 +229,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -226,7 +247,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -244,7 +265,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -264,7 +285,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -332,11 +353,20 @@ const CitationsSchema = z.object({
   "cito:cites": z.array(CitationSchema),
 });
 
-async function extractCitations(images: OpenAIImage[]) {
+async function extractCitations(paperReferences: any) {
   console.log(
-    `[extractCitations] Starting citations extraction with ${images.length} images (2nd half of the paper)`
+    `[extractCitations] Starting citations extraction from references`
   );
   const client = Config.instructorOai;
+
+  // Use references text for LLM citation extraction
+  const referencesText = Array.isArray(paperReferences)
+    ? paperReferences.join("\n")
+    : paperReferences || "No references found";
+
+  console.log(
+    `[extractCitations] Passed number of references: ${paperReferences?.length ?? 0}`
+  );
 
   const { _meta, ...citations } = await client.chat.completions.create({
     model: "gpt-4o",
@@ -347,7 +377,7 @@ async function extractCitations(images: OpenAIImage[]) {
       },
       {
         role: "user",
-        content: [...images],
+        content: referencesText,
       },
     ],
     response_model: { schema: CitationsSchema, name: "Citations" },
@@ -379,25 +409,24 @@ export async function categorizeIntoDAOsString(abstract: string) {
   return response.choices[0].message.content;
 }
 
-export async function generateKa(images: OpenAIImage[]) {
+export async function generateKa(paperArray: any, doi: string) {
   console.log(
-    `[generateKa] Starting knowledge extraction with ${images.length} images`
+    `[generateKa] Starting knowledge extraction using TEI XML data with DOI: ${doi}`
   );
-  // Get 2nd half of paper for citations extraction
-  const secondHalf = images.slice(Math.floor(images.length / 2));
 
   const res = await Promise.all([
-    extractPaper(images),
-    extractOntologies(images),
-    extractCitations(secondHalf),
+    extractPaper(paperArray),
+    extractOntologies(paperArray),
+    extractCitations(paperArray.citations),
   ]);
   console.log(`[generateKa] All extractions completed, combining results`);
   res[0]["schema:about"] = res[1]["schema:about"];
 
-  // Get DOI from science APIs and compare with LLM extracted DOI
   const paperTitle = res[0]["dcterms:title"];
   const llmExtractedDoi = res[0]["@id"];
-  console.log(`[generateKa] LLM extracted DOI: ${llmExtractedDoi}`);
+  console.log(
+    `[generateKa] LLM extracted DOI: ${llmExtractedDoi}, provided DOI: ${doi}`
+  );
 
   try {
     const scienceApiDoi = await getDoiFromTitle(paperTitle, Config.email);
@@ -424,7 +453,12 @@ export async function generateKa(images: OpenAIImage[]) {
   const llmCitations = res[2]["cito:cites"] || [];
   console.log(`[generateKa] LLM extracted ${llmCitations.length} citations`);
 
-  // Get additional citations from science APIs if we have a DOI
+  // Only get additional citations from science APIs if we have less than 10 citations
+  let allCitations = [...llmCitations];
+  // if (llmCitations.length < 10) {
+  // console.log(
+  //   `[generateKa] Less than 10 citations found, fetching additional from science APIs`
+  // );
   let scienceApiCitations: any[] = [];
   const finalDoi = res[0]["@id"];
   if (finalDoi && finalDoi.includes("doi.org/")) {
@@ -443,9 +477,7 @@ export async function generateKa(images: OpenAIImage[]) {
   }
 
   // Deduplicate and merge citations
-  const allCitations = [...llmCitations];
   const existingDoiSet = new Set(llmCitations.map((c: any) => c["@id"]));
-
   let newCitationsAdded = 0;
   for (const apiCitation of scienceApiCitations) {
     if (!existingDoiSet.has(apiCitation["@id"])) {
@@ -458,8 +490,14 @@ export async function generateKa(images: OpenAIImage[]) {
   console.log(
     `[generateKa] Added ${newCitationsAdded} new citations from science APIs`
   );
-  console.log(`[generateKa] Total citations: ${allCitations.length}`);
+  // }
+  // else {
+  //   console.log(
+  //     `[generateKa] More than 10 citations found, skipping science API citation fetch`
+  //   );
+  // }
 
+  console.log(`[generateKa] Total citations: ${allCitations.length}`);
   res[0]["cito:cites"] = allCitations;
   console.log(`[generateKa] Knowledge extraction successfully completed`);
 

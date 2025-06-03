@@ -4,9 +4,8 @@ import { drive_v3 } from "googleapis";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import DKG from "dkg.js";
-import { fromBuffer } from "pdf2pic";
-import { pdf2PicOptions } from "./index.js";
-import { OpenAIImage } from "./extract/types.js";
+import { processFulltextDocument } from "../kaService/v2/grobidClient.js";
+import { parseXml } from "../kaService/v2/parseTeiXml.js";
 import { generateKa } from "./extract/index.js";
 import { storeJsonLd } from "./storeJsonLdToKg.js";
 import { db, fileMetadataTable } from "src/db";
@@ -23,6 +22,8 @@ const __dirname = dirname(__filename);
 type DKGClient = typeof DKG | null;
 let DkgClient: DKGClient = null;
 
+const BATCH_SIZE = 1; // Process 3 files at a time
+
 export interface FileInfo {
   id: string;
   name?: string;
@@ -32,9 +33,9 @@ export interface FileInfo {
 
 async function calculateMD5(filePath: string): Promise<string> {
   const fileBuffer = await fs.readFile(filePath);
-  const hashSum = crypto.createHash('md5');
+  const hashSum = crypto.createHash("md5");
   hashSum.update(fileBuffer);
-  return hashSum.digest('hex');
+  return hashSum.digest("hex");
 }
 
 export async function downloadFile(
@@ -100,8 +101,8 @@ async function getFilesInfo(): Promise<FileInfo[]> {
     const files = await fs.readdir(paperFolder);
     const fileInfos: FileInfo[] = await Promise.all(
       files
-        .filter(file => file.toLowerCase().endsWith('.pdf'))
-        .map(async file => {
+        .filter((file) => file.toLowerCase().endsWith(".pdf"))
+        .map(async (file) => {
           const filePath = path.join(paperFolder, file);
           const stats = await fs.stat(filePath);
           const md5Checksum = await calculateMD5(filePath);
@@ -109,7 +110,7 @@ async function getFilesInfo(): Promise<FileInfo[]> {
             id: filePath,
             name: file,
             md5Checksum,
-            size: stats.size
+            size: stats.size,
           };
         })
     );
@@ -125,7 +126,7 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
         : `local folder: ${process.env.PAPER_FOLDER}`
     } for changes`
   );
-  
+
   DkgClient = new DKG({
     environment: runtime.getSetting("DKG_ENVIRONMENT"),
     endpoint: runtime.getSetting("DKG_HOSTNAME"),
@@ -140,9 +141,9 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     contentType: "all",
     nodeApiVersion: "/v1",
   });
-  
+
   let knownHashes = new Set<string>();
-  
+
   // Load existing processed file hashes from database
   let response = await db
     .select({ hash: fileMetadataTable.hash })
@@ -164,37 +165,77 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     // Add hash to known hashes immediately to prevent duplicate processing
     knownHashes.add(file.md5Checksum!);
 
-    const converter = fromBuffer(pdfBuffer, pdf2PicOptions);
-    const storeHandler = await converter.bulk(-1, {
-      responseType: "base64",
-    });
-    const images: OpenAIImage[] = storeHandler
-      .filter((page) => page.base64)
-      .map((page) => ({
-        type: "image_url",
-        image_url: {
-          url: `data:image/png;base64,${page.base64}`,
-        },
-      }));
+    // Process PDF using GROBID TEI XML parsing
+    const teiXml = await processFulltextDocument(pdfBuffer);
+    const paperArray = await parseXml(teiXml);
+    const { doi } = paperArray;
 
-    const ka = await generateKa(images);
-    const res = await storeJsonLd(ka);
-    if (!res) {
-      return;
-    } else {
-      logger.info("Successfully stored JSON-LD to Oxigraph");
+    try {
+      const ka = await generateKa(paperArray, doi);
+      const res = await storeJsonLd(ka);
+      if (!res) {
+        return;
+      } else {
+        logger.info("Successfully stored JSON-LD to Oxigraph");
 
+        // Optionally store JSON in configured output folder if env var is present
+        if (process.env.JSONLD_OUTPUT_FOLDER) {
+          const outputDir = path.resolve(
+            process.cwd(),
+            process.env.JSONLD_OUTPUT_FOLDER
+          );
+          try {
+            await fs.access(outputDir);
+          } catch {
+            await fs.mkdir(outputDir, { recursive: true });
+          }
+          const safeId = encodeURIComponent(ka["@id"]);
+          const fileName = `${safeId}.json`;
+          const filePath = path.join(outputDir, fileName);
 
-      // Store file metadata in database after successful processing
+          await fs.writeFile(filePath, JSON.stringify(ka, null, 2), "utf-8");
+          logger.info(`Saved KA JSON to ${filePath}`);
+        }
+
+        // Store file metadata in database after successful processing
+        await db
+          .insert(fileMetadataTable)
+          // @ts-ignore
+          .values({
+            id: file.id as string,
+            hash: file.md5Checksum as string,
+            fileName: file.name as string,
+            fileSize: Number(file.size),
+            status: "processed",
+          })
+          .onConflictDoUpdate({
+            target: fileMetadataTable.hash,
+            set: {
+              fileName: file.name as string,
+              // @ts-ignore
+              fileSize: Number(file.size),
+              modifiedAt: new Date(),
+              id: file.id as string,
+              status: "processed",
+            },
+          });
+      }
+    } catch (error) {
+      logger.error(
+        "Error occurred while publishing message to DKG:",
+        error.message
+      );
+
+      // Store file metadata in database after unsuccessful processing
       await db
         .insert(fileMetadataTable)
-         // @ts-ignore
+        // @ts-ignore
         .values({
           id: file.id as string,
           hash: file.md5Checksum as string,
           fileName: file.name as string,
           fileSize: Number(file.size),
-          status: "processed",
+          status: "failed",
         })
         .onConflictDoUpdate({
           target: fileMetadataTable.hash,
@@ -204,17 +245,9 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
             fileSize: Number(file.size),
             modifiedAt: new Date(),
             id: file.id as string,
-            status: "processed",
+            status: "failed",
           },
         });
-    }
-
-    try {
-    } catch (error) {
-      logger.error(
-        "Error occurred while publishing message to DKG:",
-        error.message
-      );
 
       if (error.stack) {
         logger.error("Stack trace:", error.stack);
@@ -224,6 +257,20 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           "Response data:",
           JSON.stringify(error.response.data, null, 2)
         );
+      }
+    }
+  };
+
+  const processBatch = async (files: FileInfo[]) => {
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      logger.info(`Processing batch of ${batch.length} files`);
+      await Promise.all(batch.map(processFile));
+
+      // Add a delay between batches if there are more files to process
+      if (i + BATCH_SIZE < files.length) {
+        logger.info("Waiting 5 seconds before processing next batch...");
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second delay between batches
       }
     }
   };
@@ -245,9 +292,7 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           newFiles.map((f) => `${f.name} (${f.md5Checksum})`)
         );
 
-        for (const file of newFiles) {
-          await processFile(file);
-        }
+        await processBatch(newFiles);
       }
     } catch (error) {
       logger.error("Error checking files:", error.stack);
@@ -256,15 +301,15 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
 
   // Start checking for changes
   checkForChanges();
-  intervalId = setInterval(checkForChanges, 10000); // Check every 10 seconds
+  // intervalId = setInterval(checkForChanges, 60000); // Check every 60 seconds
 
   return {
     stop: () => {
       isRunning = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
+      // if (intervalId) {
+      //   clearInterval(intervalId);
+      //   intervalId = null;
+      // }
     },
   };
 }
