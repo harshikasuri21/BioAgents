@@ -27,6 +27,46 @@ import { Anthropic } from "@anthropic-ai/sdk";
 
 const __dirname = path.resolve();
 
+/**
+ * Fetches ORCID ID for an author using OpenAlex API
+ */
+async function getAuthorOrcidIds(authorName: string): Promise<string | null> {
+  console.log(`[getAuthorOrcidIds] Searching for ORCID for author: ${authorName}`);
+  
+  try {
+    const encodedName = encodeURIComponent(authorName.replace(/\s+/g, '+'));
+    const email = process.env.EMAIL;
+    const url = `https://api.openalex.org/authors?search=${encodedName}&select=orcid&mailto=${email}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log(`[getAuthorOrcidIds] HTTP error ${response.status} for author: ${authorName}`);
+      return null;
+    }
+    
+    const data = await response.json() as { results?: { orcid: string | null }[] };
+    
+    if (data.results && data.results.length > 0) {
+      // Find the first result with a non-null ORCID
+      const resultWithOrcid = data.results.find((result) => result.orcid !== null);
+      
+      if (resultWithOrcid && resultWithOrcid.orcid) {
+        console.log(`[getAuthorOrcidIds] ✅ Found ORCID for ${authorName}: ${resultWithOrcid.orcid}`);
+        return resultWithOrcid.orcid;
+      } else {
+        console.log(`[getAuthorOrcidIds] ⚠️ No ORCID found for author: ${authorName}`);
+        return null;
+      }
+    } else {
+      console.log(`[getAuthorOrcidIds] ⚠️ No results found for author: ${authorName}`);
+      return null;
+    }
+  } catch (error) {
+    console.log(`[getAuthorOrcidIds] ❌ Error fetching ORCID for ${authorName}:`, error);
+    return null;
+  }
+}
+
 async function extractPaper(paperArray: ParsedTeiXmlDocument) {
   console.log(`[extractPaper] Starting paper extraction from TEI XML data`);
   const client = Config.instructorOai;
@@ -426,6 +466,27 @@ export async function generateKa(
   ]);
   console.log(`[generateKa] All extractions completed, combining results`);
   res[0]["schema:about"] = res[1]["schema:about"];
+
+  // Process authors and update their ORCID IDs
+  console.log(`[generateKa] Processing authors to get ORCID IDs`);
+  const extractedAuthors = res[0]["dcterms:creator"] || [];
+  
+  for (const author of extractedAuthors) {
+    const authorName = author["foaf:name"];
+    if (authorName) {
+      console.log(`[generateKa] Processing author: ${authorName}`);
+      const orcidId = await getAuthorOrcidIds(authorName);
+      
+      if (orcidId) {
+        author["@id"] = orcidId;
+        console.log(`[generateKa] ✅ Updated author ${authorName} with ORCID: ${orcidId}`);
+      } else {
+        console.log(`[generateKa] ⚠️ Keeping original @id for author: ${authorName}`);
+      }
+    }
+  }
+  
+  console.log(`[generateKa] Processed ${extractedAuthors.length} authors for ORCID IDs`);
 
   const paperTitle = res[0]["dcterms:title"];
   const llmExtractedDoi = res[0]["@id"];
