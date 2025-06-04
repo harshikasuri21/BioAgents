@@ -11,8 +11,8 @@ export async function processFulltextDocument(file: Buffer) {
   const form = new FormData();
 
   form.append("consolidateHeader", "1");
-  form.append("consolidateCitations", "1");
-  form.append("consolidateFunders", "1");
+  // form.append("consolidateCitations", "1");
+  // form.append("consolidateFunders", "1");
   form.append("includeRawAffiliations", "1");
   form.append("includeRawCitations", "1");
   form.append("segmentSentences", "1");
@@ -31,7 +31,7 @@ export async function processFulltextDocument(file: Buffer) {
     // GROBID can spit out TEI up to several MB; disable the limits
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
-    timeout: 300_000, // ms – tune to your latency
+    timeout: 120_000, // ms – tune to your latency
   });
 
   const end = new Date();

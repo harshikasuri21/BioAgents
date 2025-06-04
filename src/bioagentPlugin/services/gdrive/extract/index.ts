@@ -7,7 +7,7 @@ import {
   citationsExtractionPrompt,
 } from "./prompts";
 import { z } from "zod";
-import { OpenAIImage } from "./types";
+import { OpenAIImage, ParsedTeiXmlDocument } from "./types";
 import { categorizeIntoDAOsPrompt } from "../../kaService/v1/llmPrompt";
 import {
   getDoiFromTitle,
@@ -27,19 +27,22 @@ import { Anthropic } from "@anthropic-ai/sdk";
 
 const __dirname = path.resolve();
 
-async function extractPaper(paperArray: any) {
+async function extractPaper(paperArray: ParsedTeiXmlDocument) {
   console.log(`[extractPaper] Starting paper extraction from TEI XML data`);
   const client = Config.instructorOai;
 
   // Create text content from paper sections
   const textContent = [
-    paperArray.doi,
-    paperArray.title,
-    paperArray.abstract,
-    paperArray.introduction,
-    paperArray.methods,
-    paperArray.results,
-    paperArray.discussion,
+    "doi: " + paperArray.doi,
+    "title: " + paperArray.title,
+    "abstract: " + paperArray.abstract,
+    "introduction: " + paperArray.introduction,
+    "authors: " + paperArray.authors,
+    "datePublished: " + paperArray.datePublished,
+    "publisher: " + paperArray.publisher,
+    // paperArray.methods,
+    // paperArray.results,
+    // paperArray.discussion,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -63,7 +66,7 @@ async function extractPaper(paperArray: any) {
   return paper;
 }
 
-async function extractOntologies(paperArray: any) {
+async function extractOntologies(paperArray: ParsedTeiXmlDocument) {
   console.log(
     `[extractOntologies] Starting ontologies extraction from TEI XML data`
   );
@@ -71,12 +74,15 @@ async function extractOntologies(paperArray: any) {
 
   // Create text content from paper sections for ontology extraction
   const textContent = [
-    paperArray.title,
-    paperArray.abstract,
-    paperArray.introduction,
-    paperArray.methods,
-    paperArray.results,
-    paperArray.discussion,
+    "title: " + paperArray.title,
+    "abstract: " + paperArray.abstract,
+    "introduction: " + paperArray.introduction,
+    "methods: " + paperArray.methods,
+    "results: " + paperArray.results,
+    "discussion: " + paperArray.discussion,
+    "conclusion: " + paperArray.conclusion,
+    "futureWork: " + paperArray.futureWork,
+    "appendix: " + paperArray.appendix,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -364,10 +370,6 @@ async function extractCitations(paperReferences: any) {
     ? paperReferences.join("\n")
     : paperReferences || "No references found";
 
-  console.log(
-    `[extractCitations] Passed number of references: ${paperReferences?.length ?? 0}`
-  );
-
   const { _meta, ...citations } = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
@@ -409,7 +411,10 @@ export async function categorizeIntoDAOsString(abstract: string) {
   return response.choices[0].message.content;
 }
 
-export async function generateKa(paperArray: any, doi: string) {
+export async function generateKa(
+  paperArray: ParsedTeiXmlDocument,
+  doi: string
+) {
   console.log(
     `[generateKa] Starting knowledge extraction using TEI XML data with DOI: ${doi}`
   );
@@ -428,37 +433,11 @@ export async function generateKa(paperArray: any, doi: string) {
     `[generateKa] LLM extracted DOI: ${llmExtractedDoi}, provided DOI: ${doi}`
   );
 
-  try {
-    const scienceApiDoi = await getDoiFromTitle(paperTitle, Config.email);
-    if (scienceApiDoi) {
-      console.log(`[generateKa] Science API found DOI: ${scienceApiDoi}`);
-      if (llmExtractedDoi === scienceApiDoi) {
-        console.log(`[generateKa] ✅ LLM correctly extracted DOI`);
-      } else {
-        console.log(
-          `[generateKa] ❌ LLM DOI differs from Science API DOI, using Science API DOI`
-        );
-        res[0]["@id"] = scienceApiDoi;
-      }
-    } else {
-      console.log(
-        `[generateKa] ⚠️ Science API could not find DOI, keeping LLM extracted DOI`
-      );
-    }
-  } catch (error) {
-    console.log(`[generateKa] Error getting DOI from science APIs:`, error);
-  }
-
   // Log LLM extracted citations count
   const llmCitations = res[2]["cito:cites"] || [];
   console.log(`[generateKa] LLM extracted ${llmCitations.length} citations`);
 
-  // Only get additional citations from science APIs if we have less than 10 citations
   let allCitations = [...llmCitations];
-  // if (llmCitations.length < 10) {
-  // console.log(
-  //   `[generateKa] Less than 10 citations found, fetching additional from science APIs`
-  // );
   let scienceApiCitations: any[] = [];
   const finalDoi = res[0]["@id"];
   if (finalDoi && finalDoi.includes("doi.org/")) {
@@ -490,12 +469,6 @@ export async function generateKa(paperArray: any, doi: string) {
   console.log(
     `[generateKa] Added ${newCitationsAdded} new citations from science APIs`
   );
-  // }
-  // else {
-  //   console.log(
-  //     `[generateKa] More than 10 citations found, skipping science API citation fetch`
-  //   );
-  // }
 
   console.log(`[generateKa] Total citations: ${allCitations.length}`);
   res[0]["cito:cites"] = allCitations;
