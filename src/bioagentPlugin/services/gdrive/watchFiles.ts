@@ -22,8 +22,6 @@ const __dirname = dirname(__filename);
 type DKGClient = typeof DKG | null;
 let DkgClient: DKGClient = null;
 
-const BATCH_SIZE = 1; // Process 3 files at a time
-
 export interface FileInfo {
   id: string;
   name?: string;
@@ -261,20 +259,6 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     }
   };
 
-  const processBatch = async (files: FileInfo[]) => {
-    for (let i = 0; i < files.length; i += BATCH_SIZE) {
-      const batch = files.slice(i, i + BATCH_SIZE);
-      logger.info(`Processing batch of ${batch.length} files`);
-      await Promise.all(batch.map(processFile));
-
-      // Add a delay between batches if there are more files to process
-      if (i + BATCH_SIZE < files.length) {
-        logger.info("Waiting 5 seconds before processing next batch...");
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second delay between batches
-      }
-    }
-  };
-
   const checkForChanges = async () => {
     if (!isRunning) return;
 
@@ -282,6 +266,8 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
 
     try {
       const files = await getFilesInfo();
+
+      console.log(`[checkForChanges] Got ${files.length} files`);
 
       // Only filter by hash - if we haven't seen this content before, process it
       const newFiles = files.filter((f) => !knownHashes.has(f.md5Checksum!));
@@ -292,24 +278,27 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           newFiles.map((f) => `${f.name} (${f.md5Checksum})`)
         );
 
-        await processBatch(newFiles);
+        for (const file of newFiles) {
+          await processFile(file);
+        }
       }
     } catch (error) {
+      console.log(`[checkForChanges] Error checking files:`, error);
       logger.error("Error checking files:", error.stack);
     }
   };
 
   // Start checking for changes
   checkForChanges();
-  // intervalId = setInterval(checkForChanges, 60000); // Check every 60 seconds
+  intervalId = setInterval(checkForChanges, 60000); // Check every 60 seconds
 
   return {
     stop: () => {
       isRunning = false;
-      // if (intervalId) {
-      //   clearInterval(intervalId);
-      //   intervalId = null;
-      // }
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
     },
   };
 }
