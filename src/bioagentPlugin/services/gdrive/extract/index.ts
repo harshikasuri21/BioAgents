@@ -31,38 +31,55 @@ const __dirname = path.resolve();
  * Fetches ORCID ID for an author using OpenAlex API
  */
 async function getAuthorOrcidIds(authorName: string): Promise<string | null> {
-  console.log(`[getAuthorOrcidIds] Searching for ORCID for author: ${authorName}`);
-  
+  console.log(
+    `[getAuthorOrcidIds] Searching for ORCID for author: ${authorName}`
+  );
+
   try {
-    const encodedName = encodeURIComponent(authorName.replace(/\s+/g, '+'));
+    const encodedName = encodeURIComponent(authorName.replace(/\s+/g, "+"));
     const email = process.env.EMAIL;
     const url = `https://api.openalex.org/authors?search=${encodedName}&select=orcid&mailto=${email}`;
-    
+
     const response = await fetch(url);
     if (!response.ok) {
-      console.log(`[getAuthorOrcidIds] HTTP error ${response.status} for author: ${authorName}`);
+      console.log(
+        `[getAuthorOrcidIds] HTTP error ${response.status} for author: ${authorName}`
+      );
       return null;
     }
-    
-    const data = await response.json() as { results?: { orcid: string | null }[] };
-    
+
+    const data = (await response.json()) as {
+      results?: { orcid: string | null }[];
+    };
+
     if (data.results && data.results.length > 0) {
       // Find the first result with a non-null ORCID
-      const resultWithOrcid = data.results.find((result) => result.orcid !== null);
-      
+      const resultWithOrcid = data.results.find(
+        (result) => result.orcid !== null
+      );
+
       if (resultWithOrcid && resultWithOrcid.orcid) {
-        console.log(`[getAuthorOrcidIds] ✅ Found ORCID for ${authorName}: ${resultWithOrcid.orcid}`);
+        console.log(
+          `[getAuthorOrcidIds] ✅ Found ORCID for ${authorName}: ${resultWithOrcid.orcid}`
+        );
         return resultWithOrcid.orcid;
       } else {
-        console.log(`[getAuthorOrcidIds] ⚠️ No ORCID found for author: ${authorName}`);
+        console.log(
+          `[getAuthorOrcidIds] ⚠️ No ORCID found for author: ${authorName}`
+        );
         return null;
       }
     } else {
-      console.log(`[getAuthorOrcidIds] ⚠️ No results found for author: ${authorName}`);
+      console.log(
+        `[getAuthorOrcidIds] ⚠️ No results found for author: ${authorName}`
+      );
       return null;
     }
   } catch (error) {
-    console.log(`[getAuthorOrcidIds] ❌ Error fetching ORCID for ${authorName}:`, error);
+    console.log(
+      `[getAuthorOrcidIds] ❌ Error fetching ORCID for ${authorName}:`,
+      error
+    );
     return null;
   }
 }
@@ -198,8 +215,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (
         originalId.startsWith("DOID:") ||
@@ -218,8 +234,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (
         originalId.startsWith("CHEBI:") ||
@@ -238,8 +253,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (
         originalId.startsWith("ATC:") ||
@@ -256,8 +270,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (
         originalId.startsWith("MONDO:") ||
@@ -276,8 +289,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (
         originalId.startsWith("ECO:") ||
@@ -294,8 +306,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (originalId.startsWith("PW:") || originalId.startsWith("pw:")) {
         // Assuming CURIE for Pathway Ontology is PW:XXXXXXX
@@ -312,8 +323,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else if (
         originalId.startsWith("MESH:") ||
@@ -332,8 +342,7 @@ async function validateOntologyTerms(ontologies: any) {
           }
           validatedCount++;
 
-          // Add schema:url field
-          term["schema:url"] = fullUrl;
+          term["@id"] = fullUrl;
         }
       } else {
         console.log(
@@ -344,10 +353,7 @@ async function validateOntologyTerms(ontologies: any) {
         validatedCount++;
       }
 
-      validatedTerms.push({
-        ...term,
-        "@id": validatedId, // Update with the new full URI
-      });
+      validatedTerms.push(term);
 
       if (wasUpdated && validatedId !== originalId) {
         // Check validatedId !== originalId again because wasUpdated might be true even if strings are same due to normalization logic
@@ -470,23 +476,29 @@ export async function generateKa(
   // Process authors and update their ORCID IDs
   console.log(`[generateKa] Processing authors to get ORCID IDs`);
   const extractedAuthors = res[0]["dcterms:creator"] || [];
-  
+
   for (const author of extractedAuthors) {
     const authorName = author["foaf:name"];
     if (authorName) {
       console.log(`[generateKa] Processing author: ${authorName}`);
       const orcidId = await getAuthorOrcidIds(authorName);
-      
+
       if (orcidId) {
         author["@id"] = orcidId;
-        console.log(`[generateKa] ✅ Updated author ${authorName} with ORCID: ${orcidId}`);
+        console.log(
+          `[generateKa] ✅ Updated author ${authorName} with ORCID: ${orcidId}`
+        );
       } else {
-        console.log(`[generateKa] ⚠️ Keeping original @id for author: ${authorName}`);
+        console.log(
+          `[generateKa] ⚠️ Keeping original @id for author: ${authorName}`
+        );
       }
     }
   }
-  
-  console.log(`[generateKa] Processed ${extractedAuthors.length} authors for ORCID IDs`);
+
+  console.log(
+    `[generateKa] Processed ${extractedAuthors.length} authors for ORCID IDs`
+  );
 
   const paperTitle = res[0]["dcterms:title"];
   const llmExtractedDoi = res[0]["@id"];
