@@ -7,7 +7,7 @@ import {
   citationsExtractionPrompt,
 } from "./prompts";
 import { z } from "zod";
-import { OpenAIImage } from "./types";
+import { OpenAIImage, ParsedTeiXmlDocument } from "./types";
 import { categorizeIntoDAOsPrompt } from "../../kaService/v1/llmPrompt";
 import {
   getDoiFromTitle,
@@ -27,13 +27,65 @@ import { Anthropic } from "@anthropic-ai/sdk";
 
 const __dirname = path.resolve();
 
-async function extractPaper(images: OpenAIImage[]) {
-  console.log(
-    `[extractPaper] Starting paper extraction with ${images.length} images`
-  );
+/**
+ * Fetches ORCID ID for an author using OpenAlex API
+ */
+async function getAuthorOrcidIds(authorName: string): Promise<string | null> {
+  console.log(`[getAuthorOrcidIds] Searching for ORCID for author: ${authorName}`);
+  
+  try {
+    const encodedName = encodeURIComponent(authorName.replace(/\s+/g, '+'));
+    const email = process.env.EMAIL;
+    const url = `https://api.openalex.org/authors?search=${encodedName}&select=orcid&mailto=${email}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log(`[getAuthorOrcidIds] HTTP error ${response.status} for author: ${authorName}`);
+      return null;
+    }
+    
+    const data = await response.json() as { results?: { orcid: string | null }[] };
+    
+    if (data.results && data.results.length > 0) {
+      // Find the first result with a non-null ORCID
+      const resultWithOrcid = data.results.find((result) => result.orcid !== null);
+      
+      if (resultWithOrcid && resultWithOrcid.orcid) {
+        console.log(`[getAuthorOrcidIds] ✅ Found ORCID for ${authorName}: ${resultWithOrcid.orcid}`);
+        return resultWithOrcid.orcid;
+      } else {
+        console.log(`[getAuthorOrcidIds] ⚠️ No ORCID found for author: ${authorName}`);
+        return null;
+      }
+    } else {
+      console.log(`[getAuthorOrcidIds] ⚠️ No results found for author: ${authorName}`);
+      return null;
+    }
+  } catch (error) {
+    console.log(`[getAuthorOrcidIds] ❌ Error fetching ORCID for ${authorName}:`, error);
+    return null;
+  }
+}
+
+async function extractPaper(paperArray: ParsedTeiXmlDocument) {
+  console.log(`[extractPaper] Starting paper extraction from TEI XML data`);
   const client = Config.instructorOai;
 
-  // TODO: aside of images we could get some data from the internet or OpenAlex, like citations
+  // Create text content from paper sections
+  const textContent = [
+    "doi: " + paperArray.doi,
+    "title: " + paperArray.title,
+    "abstract: " + paperArray.abstract,
+    "introduction: " + paperArray.introduction,
+    "authors: " + paperArray.authors,
+    "datePublished: " + paperArray.datePublished,
+    "publisher: " + paperArray.publisher,
+    // paperArray.methods,
+    // paperArray.results,
+    // paperArray.discussion,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const { _meta, ...paper } = await client.chat.completions.create({
     model: "gpt-4o",
@@ -44,7 +96,7 @@ async function extractPaper(images: OpenAIImage[]) {
       },
       {
         role: "user",
-        content: [...images],
+        content: textContent,
       },
     ],
     response_model: { schema: PaperSchema, name: "Paper" },
@@ -54,11 +106,26 @@ async function extractPaper(images: OpenAIImage[]) {
   return paper;
 }
 
-async function extractOntologies(images: OpenAIImage[]) {
+async function extractOntologies(paperArray: ParsedTeiXmlDocument) {
   console.log(
-    `[extractOntologies] Starting ontologies extraction with ${images.length} images`
+    `[extractOntologies] Starting ontologies extraction from TEI XML data`
   );
   const client = Config.instructorOai;
+
+  // Create text content from paper sections for ontology extraction
+  const textContent = [
+    "title: " + paperArray.title,
+    "abstract: " + paperArray.abstract,
+    "introduction: " + paperArray.introduction,
+    "methods: " + paperArray.methods,
+    "results: " + paperArray.results,
+    "discussion: " + paperArray.discussion,
+    "conclusion: " + paperArray.conclusion,
+    "futureWork: " + paperArray.futureWork,
+    "appendix: " + paperArray.appendix,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const { _meta, ...ontologies } = await client.chat.completions.create({
     model: "gpt-4o",
@@ -69,7 +136,7 @@ async function extractOntologies(images: OpenAIImage[]) {
       },
       {
         role: "user",
-        content: [...images],
+        content: textContent,
       },
     ],
     response_model: { schema: OntologiesSchema, name: "Ontologies" },
@@ -130,7 +197,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -150,7 +217,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -170,7 +237,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -188,7 +255,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -208,7 +275,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -226,7 +293,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -244,7 +311,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -264,7 +331,7 @@ async function validateOntologyTerms(ontologies: any) {
             updatedCount++;
           }
           validatedCount++;
-          
+
           // Add schema:url field
           term["schema:url"] = fullUrl;
         }
@@ -332,11 +399,16 @@ const CitationsSchema = z.object({
   "cito:cites": z.array(CitationSchema),
 });
 
-async function extractCitations(images: OpenAIImage[]) {
+async function extractCitations(paperReferences: any) {
   console.log(
-    `[extractCitations] Starting citations extraction with ${images.length} images (2nd half of the paper)`
+    `[extractCitations] Starting citations extraction from references`
   );
   const client = Config.instructorOai;
+
+  // Use references text for LLM citation extraction
+  const referencesText = Array.isArray(paperReferences)
+    ? paperReferences.join("\n")
+    : paperReferences || "No references found";
 
   const { _meta, ...citations } = await client.chat.completions.create({
     model: "gpt-4o",
@@ -347,7 +419,7 @@ async function extractCitations(images: OpenAIImage[]) {
       },
       {
         role: "user",
-        content: [...images],
+        content: referencesText,
       },
     ],
     response_model: { schema: CitationsSchema, name: "Citations" },
@@ -379,52 +451,54 @@ export async function categorizeIntoDAOsString(abstract: string) {
   return response.choices[0].message.content;
 }
 
-export async function generateKa(images: OpenAIImage[]) {
+export async function generateKa(
+  paperArray: ParsedTeiXmlDocument,
+  doi: string
+) {
   console.log(
-    `[generateKa] Starting knowledge extraction with ${images.length} images`
+    `[generateKa] Starting knowledge extraction using TEI XML data with DOI: ${doi}`
   );
-  // Get 2nd half of paper for citations extraction
-  const secondHalf = images.slice(Math.floor(images.length / 2));
 
   const res = await Promise.all([
-    extractPaper(images),
-    extractOntologies(images),
-    extractCitations(secondHalf),
+    extractPaper(paperArray),
+    extractOntologies(paperArray),
+    extractCitations(paperArray.citations),
   ]);
   console.log(`[generateKa] All extractions completed, combining results`);
   res[0]["schema:about"] = res[1]["schema:about"];
 
-  // Get DOI from science APIs and compare with LLM extracted DOI
+  // Process authors and update their ORCID IDs
+  console.log(`[generateKa] Processing authors to get ORCID IDs`);
+  const extractedAuthors = res[0]["dcterms:creator"] || [];
+  
+  for (const author of extractedAuthors) {
+    const authorName = author["foaf:name"];
+    if (authorName) {
+      console.log(`[generateKa] Processing author: ${authorName}`);
+      const orcidId = await getAuthorOrcidIds(authorName);
+      
+      if (orcidId) {
+        author["@id"] = orcidId;
+        console.log(`[generateKa] ✅ Updated author ${authorName} with ORCID: ${orcidId}`);
+      } else {
+        console.log(`[generateKa] ⚠️ Keeping original @id for author: ${authorName}`);
+      }
+    }
+  }
+  
+  console.log(`[generateKa] Processed ${extractedAuthors.length} authors for ORCID IDs`);
+
   const paperTitle = res[0]["dcterms:title"];
   const llmExtractedDoi = res[0]["@id"];
-  console.log(`[generateKa] LLM extracted DOI: ${llmExtractedDoi}`);
-
-  try {
-    const scienceApiDoi = await getDoiFromTitle(paperTitle, Config.email);
-    if (scienceApiDoi) {
-      console.log(`[generateKa] Science API found DOI: ${scienceApiDoi}`);
-      if (llmExtractedDoi === scienceApiDoi) {
-        console.log(`[generateKa] ✅ LLM correctly extracted DOI`);
-      } else {
-        console.log(
-          `[generateKa] ❌ LLM DOI differs from Science API DOI, using Science API DOI`
-        );
-        res[0]["@id"] = scienceApiDoi;
-      }
-    } else {
-      console.log(
-        `[generateKa] ⚠️ Science API could not find DOI, keeping LLM extracted DOI`
-      );
-    }
-  } catch (error) {
-    console.log(`[generateKa] Error getting DOI from science APIs:`, error);
-  }
+  console.log(
+    `[generateKa] LLM extracted DOI: ${llmExtractedDoi}, provided DOI: ${doi}`
+  );
 
   // Log LLM extracted citations count
   const llmCitations = res[2]["cito:cites"] || [];
   console.log(`[generateKa] LLM extracted ${llmCitations.length} citations`);
 
-  // Get additional citations from science APIs if we have a DOI
+  let allCitations = [...llmCitations];
   let scienceApiCitations: any[] = [];
   const finalDoi = res[0]["@id"];
   if (finalDoi && finalDoi.includes("doi.org/")) {
@@ -443,9 +517,7 @@ export async function generateKa(images: OpenAIImage[]) {
   }
 
   // Deduplicate and merge citations
-  const allCitations = [...llmCitations];
   const existingDoiSet = new Set(llmCitations.map((c: any) => c["@id"]));
-
   let newCitationsAdded = 0;
   for (const apiCitation of scienceApiCitations) {
     if (!existingDoiSet.has(apiCitation["@id"])) {
@@ -458,8 +530,8 @@ export async function generateKa(images: OpenAIImage[]) {
   console.log(
     `[generateKa] Added ${newCitationsAdded} new citations from science APIs`
   );
-  console.log(`[generateKa] Total citations: ${allCitations.length}`);
 
+  console.log(`[generateKa] Total citations: ${allCitations.length}`);
   res[0]["cito:cites"] = allCitations;
   console.log(`[generateKa] Knowledge extraction successfully completed`);
 
