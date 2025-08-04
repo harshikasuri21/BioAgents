@@ -22,6 +22,8 @@ const __dirname = dirname(__filename);
 type DKGClient = typeof DKG | null;
 let DkgClient: DKGClient = null;
 
+const BATCH_SIZE = 3; // Process 3 files at a time
+
 export interface FileInfo {
   id: string;
   name?: string;
@@ -156,73 +158,70 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
   let isRunning = true;
 
   const processFile = async (file: FileInfo) => {
-    logger.info(`Processing ${file.name}...`);
-    const pdfBuffer = await downloadFile(drive, file);
-    logger.info(`Successfully downloaded ${file.name}`);
-
-    // Add hash to known hashes immediately to prevent duplicate processing
-    knownHashes.add(file.md5Checksum!);
-
-    // Process PDF using GROBID TEI XML parsing
-    const teiXml = await processFulltextDocument(pdfBuffer);
-    const paperArray = await parseXml(teiXml);
-    const { doi } = paperArray;
-
     try {
+      logger.info(`Processing ${file.name}...`);
+      const pdfBuffer = await downloadFile(drive, file);
+      logger.info(`Successfully downloaded ${file.name}`);
+
+      // Add hash to known hashes immediately to prevent duplicate processing
+      knownHashes.add(file.md5Checksum!);
+
+      // Process PDF using GROBID TEI XML parsing
+      const teiXml = await processFulltextDocument(pdfBuffer);
+      const paperArray = await parseXml(teiXml);
+      const { doi } = paperArray;
+
       const ka = await generateKa(paperArray, doi);
       const res = await storeJsonLd(ka);
       if (!res) {
-        return;
-      } else {
-        logger.info("Successfully stored JSON-LD to Oxigraph");
-
-        // Optionally store JSON in configured output folder if env var is present
-        if (process.env.JSONLD_OUTPUT_FOLDER) {
-          const outputDir = path.resolve(
-            process.cwd(),
-            process.env.JSONLD_OUTPUT_FOLDER
-          );
-          try {
-            await fs.access(outputDir);
-          } catch {
-            await fs.mkdir(outputDir, { recursive: true });
-          }
-          const safeId = encodeURIComponent(ka["@id"]);
-          const fileName = `${safeId}.json`;
-          const filePath = path.join(outputDir, fileName);
-
-          await fs.writeFile(filePath, JSON.stringify(ka, null, 2), "utf-8");
-          logger.info(`Saved KA JSON to ${filePath}`);
-        }
-
-        // Store file metadata in database after successful processing
-        await db
-          .insert(fileMetadataTable)
-          // @ts-ignore
-          .values({
-            id: file.id as string,
-            hash: file.md5Checksum as string,
-            fileName: file.name as string,
-            fileSize: Number(file.size),
-            status: "processed",
-          })
-          .onConflictDoUpdate({
-            target: fileMetadataTable.hash,
-            set: {
-              fileName: file.name as string,
-              // @ts-ignore
-              fileSize: Number(file.size),
-              modifiedAt: new Date(),
-              id: file.id as string,
-              status: "processed",
-            },
-          });
+        throw new Error("Failed to store JSON-LD");
       }
+
+      logger.info("Successfully stored JSON-LD to Oxigraph");
+
+      // Optionally store JSON in configured output folder if env var is present
+      if (process.env.JSONLD_OUTPUT_FOLDER) {
+        const outputDir = path.resolve(
+          process.cwd(),
+          process.env.JSONLD_OUTPUT_FOLDER
+        );
+        try {
+          await fs.access(outputDir);
+        } catch {
+          await fs.mkdir(outputDir, { recursive: true });
+        }
+        const safeId = encodeURIComponent(ka["@id"]);
+        const fileName = `${safeId}.json`;
+        const filePath = path.join(outputDir, fileName);
+
+        await fs.writeFile(filePath, JSON.stringify(ka, null, 2), "utf-8");
+        logger.info(`Saved KA JSON to ${filePath}`);
+      }
+
+      // Store file metadata in database after successful processing
+      await db
+        .insert(fileMetadataTable)
+        // @ts-ignore
+        .values({
+          id: file.id as string,
+          hash: file.md5Checksum as string,
+          fileName: file.name as string,
+          fileSize: Number(file.size),
+          status: "processed",
+        })
+        .onConflictDoUpdate({
+          target: fileMetadataTable.hash,
+          set: {
+            fileName: file.name as string,
+            // @ts-ignore
+            fileSize: Number(file.size),
+            modifiedAt: new Date(),
+            id: file.id as string,
+            status: "processed",
+          },
+        });
     } catch (error) {
-      logger.error(
-        "Error occurred while publishing message to DKG:",
-        error.message
-      );
+      logger.error(`Error processing file ${file.name}:`, error.message);
 
       // Store file metadata in database after unsuccessful processing
       await db
@@ -259,6 +258,29 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
     }
   };
 
+  const processBatch = async (files: FileInfo[]) => {
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      logger.info(`Processing batch of ${batch.length} files`);
+      const results = await Promise.allSettled(batch.map(processFile));
+
+      // Log any failures but continue processing
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          logger.error(
+            `Failed to process file ${batch[index].name}: ${result.reason}`
+          );
+        }
+      });
+
+      // Add a delay between batches if there are more files to process
+      if (i + BATCH_SIZE < files.length) {
+        logger.info("Waiting 5 seconds before processing next batch...");
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second delay between batches
+      }
+    }
+  };
+
   const checkForChanges = async () => {
     if (!isRunning) return;
 
@@ -278,9 +300,7 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
           newFiles.map((f) => `${f.name} (${f.md5Checksum})`)
         );
 
-        for (const file of newFiles) {
-          await processFile(file);
-        }
+        await processBatch(newFiles);
       }
     } catch (error) {
       console.log(`[checkForChanges] Error checking files:`, error);
@@ -290,15 +310,15 @@ export async function watchFolderChanges(runtime: IAgentRuntime) {
 
   // Start checking for changes
   checkForChanges();
-  intervalId = setInterval(checkForChanges, 60000); // Check every 60 seconds
+  // intervalId = setInterval(checkForChanges, 60000); // Check every 60 seconds
 
   return {
     stop: () => {
       isRunning = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
+      // if (intervalId) {
+      //   clearInterval(intervalId);
+      //   intervalId = null;
+      // }
     },
   };
 }

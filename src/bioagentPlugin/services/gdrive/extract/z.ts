@@ -153,11 +153,6 @@ export const OntologyTermSchema = z.object({
     .describe(
       "Human-readable label of the ontology term (e.g., 'gamma secretase activity')."
     ),
-  "schema:url": z
-    .string()
-    .describe(
-      "Full URL path to the ontology term (e.g., 'http://purl.obolibrary.org/obo/GO_0070765')."
-    ),
   "dcterms:description": z
     .string()
     .describe(
