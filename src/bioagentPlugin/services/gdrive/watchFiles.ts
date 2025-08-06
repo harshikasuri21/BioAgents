@@ -68,30 +68,49 @@ export async function downloadFile(
 async function getFilesInfo(): Promise<FileInfo[]> {
   if (process.env.USE_GOOGLE_DRIVE === "true") {
     const drive = await initDriveClient();
-    const query = getListFilesQuery();
-    const response = await drive.files.list(query);
+    let allFiles: FileInfo[] = [];
+    let nextPageToken: string | undefined = undefined;
 
-    return (response.data.files || [])
-      .filter(
-        (
-          f
-        ): f is Schema$File & {
-          id: string;
-          name: string;
-          md5Checksum: string;
-          size: number;
-        } =>
-          f.id != null &&
-          f.name != null &&
-          f.md5Checksum != null &&
-          f.size != null
-      )
-      .map((f) => ({
-        id: f.id,
-        name: f.name,
-        md5Checksum: f.md5Checksum,
-        size: f.size,
-      }));
+    do {
+      const query = getListFilesQuery();
+      if (nextPageToken) {
+        query.pageToken = nextPageToken;
+      }
+      
+      const response = await drive.files.list(query);
+      
+      const files = (response.data.files || [])
+        .filter(
+          (
+            f
+          ): f is Schema$File & {
+            id: string;
+            name: string;
+            md5Checksum: string;
+            size: number;
+          } =>
+            f.id != null &&
+            f.name != null &&
+            f.md5Checksum != null &&
+            f.size != null
+        )
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          md5Checksum: f.md5Checksum,
+          size: f.size,
+        }));
+
+      allFiles.push(...files);
+      nextPageToken = response.data.nextPageToken;
+      
+      if (nextPageToken) {
+        logger.info(`Retrieved ${files.length} files, fetching next page...`);
+      }
+    } while (nextPageToken);
+
+    logger.info(`Retrieved total of ${allFiles.length} files from Google Drive`);
+    return allFiles;
   } else {
     const paperFolder = process.env.PAPER_FOLDER;
     if (!paperFolder) {

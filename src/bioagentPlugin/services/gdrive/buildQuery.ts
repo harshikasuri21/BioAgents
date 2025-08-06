@@ -16,9 +16,10 @@ class SharedDriveFolderStrategy implements ListFilesQueryStrategy {
   buildQuery(): Record<string, any> {
     return {
       q: `'${this.sharedDriveFolderId}' in parents and mimeType='application/pdf' and trashed=false`,
-      fields: "files(id, name, md5Checksum, size)",
+      fields: "files(id, name, md5Checksum, size), nextPageToken",
       orderBy: "createdTime desc",
       pageSize: 1000,
+      pageToken: undefined,
     };
   }
 
@@ -51,7 +52,7 @@ class SharedDriveStrategy implements ListFilesQueryStrategy {
       driveId: this.sharedDriveId,
       corpora: "drive",
       pageSize: 1000,
-      pageToken: undefined, // Will be populated with nextPageToken for subsequent requests
+      pageToken: undefined,
     };
   }
 
