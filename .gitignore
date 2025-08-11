@@ -3,3 +3,4 @@ node_modules
 dist
 oxigraph
 .envrc
+.DS_Store

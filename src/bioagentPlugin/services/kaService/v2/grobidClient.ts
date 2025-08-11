@@ -1,8 +1,8 @@
 import axios from "axios";
-import * as fs from "fs";
 import FormData from "form-data";
+import { Config } from "src/config";
 
-const grobidUrl = process.env.GROBID_URL;
+const grobidUrl = Config.GROBID_URL;
 const ENDPOINT = `${grobidUrl}/api/processFulltextDocument`;
 const now = new Date();
 
@@ -27,7 +27,11 @@ export async function processFulltextDocument(file: Buffer) {
   // 2. Fire the request
   const { data } = await axios.post(ENDPOINT, form, {
     // axios respects the boundary ONLY if you forward form-data’s own headers
-    headers: form.getHeaders(),
+    headers: {
+      Authorization: `Bearer ${Config.HF_TOKEN}`,
+      ...form.getHeaders(),
+    },
+
     // GROBID can spit out TEI up to several MB; disable the limits
     maxBodyLength: Infinity,
     maxContentLength: Infinity,

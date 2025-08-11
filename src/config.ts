@@ -57,6 +57,9 @@ export class Config {
 
   static readonly GROBID_URL?: string =
     process.env["GROBID_URL"] ?? "http://localhost:8070";
+
+  static readonly HF_TOKEN: string = process.env["HF_TOKEN"];
+
   static readonly RAILWAY_ENVIRONMENT_NAME?: string =
     process.env["RAILWAY_ENVIRONMENT_NAME"] ?? "local";
 
