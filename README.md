@@ -1,8 +1,8 @@
 ## Articles
 
-- [What is BioAgents?](https://example.com/your-article-1)
-- [How our Agent posts to Discord & Twitter](https://example.com/your-article-2)
-- [Setup notes & troubleshooting](https://example.com/your-article-3)
+- [What is BioAgents?](https://docs.google.com/document/d/1TWNfnz4s4iVWexxufbvNXdm8_2k2mhoDPQQm0NPh3nw/edit?tab=t.0)
+- [How our Agent posts to Discord & Twitter](https://docs.google.com/document/d/1TWNfnz4s4iVWexxufbvNXdm8_2k2mhoDPQQm0NPh3nw/edit?tab=t.0)
+- [Setup notes & troubleshooting](https://docs.google.com/document/d/1TWNfnz4s4iVWexxufbvNXdm8_2k2mhoDPQQm0NPh3nw/edit?tab=t.0)
 
 ---
 # BioAgent 🤖🧬
