@@ -1,3 +1,10 @@
+## Articles
+
+- [What is BioAgents?](https://example.com/your-article-1)
+- [How our Agent posts to Discord & Twitter](https://example.com/your-article-2)
+- [Setup notes & troubleshooting](https://example.com/your-article-3)
+
+---
 # BioAgent 🤖🧬
 
 An agentic framework for biological research and analysis.
